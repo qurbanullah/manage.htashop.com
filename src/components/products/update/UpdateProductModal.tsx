@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, Check, Package, FolderTree, DollarSign, ListChecks, Ruler, Boxes, Factory } from "lucide-react";
+import { ChevronRight, Check, Package, FolderTree, DollarSign, ListChecks, Ruler, Boxes, Factory, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/Toaster";
@@ -14,6 +14,8 @@ import { FeaturesStep } from "@/components/products/create/steps/ProductFeatures
 import { SpecificationsStep } from "@/components/products/create/steps/ProductSpecificationsStep";
 import { InventoryStep, type InventoryFormData } from "@/components/products/create/steps/ProductInventoryStep";
 import { BrandManufacturerStep } from "@/components/products/create/steps/BrandManufacturerStep";
+import { ProductHighlightsStep } from "@/components/products/create/steps/ProductHighlightsStep";
+import { highlightsApi, type ProductHighlightAssignment } from "@/api/highlights";
 
 interface Spec {
   id: string;
@@ -46,6 +48,7 @@ interface EditProductData {
   currency: string;
   unitId: string;
   inventory: InventoryFormData;
+  highlights: ProductHighlightAssignment[];
 }
 
 const STEPS = [
@@ -56,6 +59,7 @@ const STEPS = [
   { key: "features", label: "Features", icon: ListChecks },
   { key: "specs", label: "Specifications", icon: Ruler },
   { key: "inventory", label: "Inventory", icon: Boxes },
+  { key: "highlights", label: "Highlights", icon: Sparkles },
 ];
 
 function buildInitialData(product: ProductData): EditProductData {
@@ -102,6 +106,7 @@ function buildInitialData(product: ProductData): EditProductData {
       sku: "",
       warehouseId: "",
     },
+    highlights: [],
   };
 }
 
@@ -121,6 +126,12 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
   const { data: inventories = [] } = useQuery({
     queryKey: ["inventory", "product", product.id],
     queryFn: () => inventoryApi.list({ stockable_type: "App\\Models\\Product", stockable_id: product.id }),
+    enabled: isOpen,
+  });
+
+  const { data: existingHighlights = [] } = useQuery({
+    queryKey: ["product-highlights", product.uuid],
+    queryFn: () => highlightsApi.productHighlights(product.uuid),
     enabled: isOpen,
   });
 
@@ -148,6 +159,13 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     }
   }, [data.name, product.status]);
 
+  // Pre-populate highlights from existing product assignments
+  useEffect(() => {
+    if (existingHighlights.length) {
+      setData((prev) => ({ ...prev, highlights: existingHighlights }));
+    }
+  }, [existingHighlights]);
+
   // Pre-populate the inventory step from the first inventory record (Phase 1:
   // single inventory record is assumed; multi-warehouse editing comes later).
   useEffect(() => {
@@ -171,7 +189,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     if (i === 1) return data.categoryIds.length > 0;
     if (i === 2) return true; // Brand & Manufacturer (optional)
     if (i === 3) return data.price.trim().length > 0 && Number(data.price) > 0;
-    return true; // features, specs, inventory are optional
+    return true; // features, specs, inventory, highlights are optional
   };
 
   const isStepAccessible = (i: number) => {
@@ -221,6 +239,8 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
           track_inventory: true,
         });
       }
+
+      await highlightsApi.sync(product.uuid, data.highlights.map((h, i) => ({ ...h, sort_order: i })));
 
       showSuccess("Product updated");
       onUpdated?.();
@@ -344,6 +364,12 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
+              />
+            )}
+            {step === 7 && (
+              <ProductHighlightsStep
+                data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
+                onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ChevronRight, Check, Package, ImagePlus, FolderTree, ListChecks, Ruler, DollarSign, Boxes, Factory } from "lucide-react";
+import { ChevronRight, Check, Package, ImagePlus, FolderTree, ListChecks, Ruler, DollarSign, Boxes, Factory, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/Toaster";
@@ -16,6 +16,8 @@ import { SpecificationsStep } from "@/components/products/create/steps/ProductSp
 import { PricingStep } from "@/components/products/create/steps/ProductPricingStep";
 import { InventoryStep, type InventoryFormData } from "@/components/products/create/steps/ProductInventoryStep";
 import { BrandManufacturerStep } from "@/components/products/create/steps/BrandManufacturerStep";
+import { ProductHighlightsStep } from "@/components/products/create/steps/ProductHighlightsStep";
+import { highlightsApi, type ProductHighlightAssignment } from "@/api/highlights";
 
 interface Spec {
   id: string;
@@ -50,6 +52,7 @@ interface ProductData {
   currency: string;
   unitId: string;
   inventory: InventoryFormData;
+  highlights: ProductHighlightAssignment[];
 }
 
 const INITIAL: ProductData = {
@@ -83,6 +86,7 @@ const INITIAL: ProductData = {
     sku: "",
     warehouseId: "",
   },
+  highlights: [],
 };
 
 const STEPS = [
@@ -94,6 +98,7 @@ const STEPS = [
   { key: "features", label: "Features", icon: ListChecks },
   { key: "specs", label: "Specifications", icon: Ruler },
   { key: "inventory", label: "Inventory", icon: Boxes },
+  { key: "highlights", label: "Highlights", icon: Sparkles },
 ];
 
 function generateStorageKey() {
@@ -150,6 +155,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
     if (i === 5) return true;                                  // Features (optional)
     if (i === 6) return true;                                  // Specs (optional)
     if (i === 7) return true;                                  // Inventory (optional)
+    if (i === 8) return true;                                  // Highlights (optional)
     return false;
   };
 
@@ -243,6 +249,11 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
           low_stock_threshold: data.inventory.lowStockThreshold ? Number(data.inventory.lowStockThreshold) : undefined,
           track_inventory: true,
         });
+      }
+
+      // 4. Sync highlights
+      if (data.highlights.length > 0) {
+        await highlightsApi.sync(product.uuid, data.highlights.map((h, i) => ({ ...h, sort_order: i })));
       }
 
       showSuccess(
@@ -388,6 +399,12 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
+              />
+            )}
+            {step === 8 && (
+              <ProductHighlightsStep
+                data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
+                onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
           </div>
