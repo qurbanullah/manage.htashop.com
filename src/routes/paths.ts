@@ -22,5 +22,6 @@ export const paths = {
   manufacturers: "/manufacturers",
   brands: "/brands",
   orders: "/orders",
+  orderDetail: "/orders/:uuid",
   settings: "/settings",
 } as const;

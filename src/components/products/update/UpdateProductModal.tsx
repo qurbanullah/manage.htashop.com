@@ -126,13 +126,13 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
   const { data: inventories = [] } = useQuery({
     queryKey: ["inventory", "product", product.id],
     queryFn: () => inventoryApi.list({ stockable_type: "App\\Models\\Product", stockable_id: product.id }),
-    enabled: isOpen,
+    enabled: isOpen && !!product,
   });
 
   const { data: existingHighlights = [] } = useQuery({
     queryKey: ["product-highlights", product.uuid],
     queryFn: () => highlightsApi.productHighlights(product.uuid),
-    enabled: isOpen,
+    enabled: isOpen && !!product,
   });
 
   useEffect(() => {

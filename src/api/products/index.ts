@@ -20,6 +20,10 @@ export interface ProductData {
   summary: string | null;
   description: string | null;
   is_active: boolean;
+  image_url?: string | null;
+  price?: number | string | null;
+  sale_price?: number | string | null;
+  currency?: string | null;
   tenant_id: number;
   organization_id: number;
   categories?: Array<{ id: number; name: string; slug: string }>;
@@ -27,6 +31,7 @@ export interface ProductData {
   features?: Array<{ id: number; name: string; slug: string }>;
   manufacturers?: Array<{ id: number; uuid: string; name: string; slug: string; code?: string | null; type?: string }>;
   brands?: Array<{ id: number; uuid: string; name: string; slug: string; manufacturer_id?: number | null }>;
+  variants?: Array<{ id: number; uuid: string; name: string; sku?: string | null }>;
   metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;

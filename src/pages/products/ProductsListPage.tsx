@@ -1,15 +1,163 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Package, Plus, Search, Loader2, ChevronDown, X } from "lucide-react";
+import {
+  Package,
+  Plus,
+  Search,
+  Loader2,
+  ChevronDown,
+  X,
+  Eye,
+  Pencil,
+  Layers,
+  Tag,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddProductModal } from "@/components/products/create/modals/AddProductModal";
+import { UpdateProductModal } from "@/components/products/update/UpdateProductModal";
 import { productsApi, type ProductData } from "@/api/products";
 import { categoriesApi, type Category } from "@/api/categories";
 
+function formatMoney(value: number | string | null | undefined, currency?: string | null) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return `${currency ?? "USD"} ${num.toLocaleString()}`;
+}
+
+function statusStyles(status: string) {
+  switch (status) {
+    case "active":
+    case "published":
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "draft":
+      return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+    default:
+      return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
+  }
+}
+
+interface ProductCardProps {
+  product: ProductData;
+  onEdit: (product: ProductData) => void;
+}
+
+function ProductCard({ product, onEdit }: ProductCardProps) {
+  const price = formatMoney(product.price, product.currency);
+  const salePrice = formatMoney(product.sale_price, product.currency);
+  const showSale = salePrice && product.price && Number(product.sale_price) < Number(product.price);
+  const brand = product.brands?.[0];
+  const category = product.categories?.[0];
+  const variantCount = product.variants?.length ?? 0;
+
+  return (
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700">
+      {/* Image */}
+      <Link
+        to={`/products/${product.route_key}`}
+        className="relative block aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-900"
+      >
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
+          </div>
+        )}
+        <span
+          className={`absolute left-2.5 top-2.5 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize shadow-sm ${statusStyles(product.status)}`}
+        >
+          {product.status || "draft"}
+        </span>
+        {product.sku && (
+          <span className="absolute right-2.5 top-2.5 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[10px] text-white backdrop-blur-sm">
+            {product.sku}
+          </span>
+        )}
+      </Link>
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            to={`/products/${product.route_key}`}
+            className="line-clamp-2 text-sm font-semibold text-gray-900 transition-colors hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
+          >
+            {product.name}
+          </Link>
+        </div>
+
+        {product.summary && (
+          <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">{product.summary}</p>
+        )}
+
+        {/* Price */}
+        <div className="mt-3 flex items-baseline gap-2">
+          {showSale ? (
+            <>
+              <span className="text-base font-bold text-gray-900 dark:text-white">{salePrice}</span>
+              <span className="text-xs text-gray-400 line-through">{price}</span>
+            </>
+          ) : price ? (
+            <span className="text-base font-bold text-gray-900 dark:text-white">{price}</span>
+          ) : (
+            <span className="text-xs text-gray-400">Price not set</span>
+          )}
+          {variantCount > 0 && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              <Layers className="h-3 w-3" />
+              {variantCount} {variantCount === 1 ? "variant" : "variants"}
+            </span>
+          )}
+        </div>
+
+        {/* Meta chips */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {brand && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <Tag className="h-3 w-3" />
+              {brand.name}
+            </span>
+          )}
+          {category && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              {category.name}
+            </span>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-700">
+          <Link
+            to={`/products/${product.route_key}`}
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            View
+          </Link>
+          <button
+            onClick={() => onEdit(product)}
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -78,6 +226,11 @@ export default function ProductsPage() {
   const rawData = productsRes?.data as Record<string, unknown> | undefined;
   const products = (Array.isArray(rawData?.data) ? rawData.data : Array.isArray(rawData) ? rawData : []) as ProductData[];
   const hasProducts = products.length > 0;
+
+  const openEdit = (product: ProductData) => {
+    setEditingProduct(product);
+    setIsEditOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -218,46 +371,12 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Product list */}
+      {/* Product cards */}
       {!isLoading && !isError && hasProducts && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-              <tr>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Name</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300 hidden sm:table-cell">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300 hidden md:table-cell">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {products.map((product) => (
-                <tr key={product.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3">
-                    <Link to={`/products/${product.route_key}`} className="font-medium text-gray-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
-                      {product.name}
-                    </Link>
-                    {product.summary && (
-                      <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
-                        {product.summary}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                      product.status === "active"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                    }`}>
-                      {product.status || "draft"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 hidden md:table-cell">
-                    {new Date(product.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {products.map((product) => (
+            <ProductCard key={product.uuid} product={product} onEdit={openEdit} />
+          ))}
         </div>
       )}
 
@@ -293,6 +412,18 @@ export default function ProductsPage() {
           queryClient.invalidateQueries({ queryKey: ["products"] });
         }}
       />
+
+      {editingProduct && (
+        <UpdateProductModal
+          product={editingProduct}
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          onUpdated={() => {
+            setIsEditOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -88,6 +88,12 @@ export default function BrandsPage() {
                 </div>
               </div>
 
+              {b.origin === "vendor" && !b.is_approved && (
+                <p className="mt-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                  Pending approval
+                </p>
+              )}
+
               {b.website && (
                 <a
                   href={b.website}

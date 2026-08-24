@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Factory, Search, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Factory, Search, ChevronDown, Plus, Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { manufacturersApi } from "@/api/manufacturers";
 import { brandsApi } from "@/api/brands";
+import { ManufacturerModal } from "@/components/manufacturers/modals/ManufacturerModal";
+import { BrandModal } from "@/components/brands/modals/BrandModal";
 
 interface Props {
   data: { manufacturerId: string; brandId: string };
@@ -18,9 +20,11 @@ interface ComboProps {
   value: string;
   disabled?: boolean;
   onChange: (id: string) => void;
+  onAddNew?: () => void;
+  addNewLabel?: string;
 }
 
-function Combo({ label, placeholder, items, value, disabled, onChange }: ComboProps) {
+function Combo({ label, placeholder, items, value, disabled, onChange, onAddNew, addNewLabel }: ComboProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -72,6 +76,22 @@ function Combo({ label, placeholder, items, value, disabled, onChange }: ComboPr
               />
             </div>
           </div>
+
+          {onAddNew && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setSearch("");
+                onAddNew();
+              }}
+              className="flex w-full items-center gap-2 border-b border-dashed border-gray-100 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-gray-700 dark:text-blue-400 dark:hover:bg-blue-950/30"
+            >
+              <Plus className="h-4 w-4" />
+              {addNewLabel ?? "Add new..."}
+            </button>
+          )}
+
           <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-gray-400">No results</div>
@@ -101,7 +121,11 @@ function Combo({ label, placeholder, items, value, disabled, onChange }: ComboPr
 }
 
 export function BrandManufacturerStep({ data, onChange }: Props) {
-  const { data: manufacturers = [] } = useQuery({
+  const queryClient = useQueryClient();
+  const [manufacturerModalOpen, setManufacturerModalOpen] = useState(false);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
+
+  const { data: manufacturers = [], isLoading: manufacturersLoading } = useQuery({
     queryKey: ["manufacturers"],
     queryFn: () => manufacturersApi.list(),
     staleTime: 10 * 60 * 1000,
@@ -114,6 +138,11 @@ export function BrandManufacturerStep({ data, onChange }: Props) {
     queryFn: () => brandsApi.list(manufacturerId),
     enabled: !!manufacturerId,
   });
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["manufacturers"] });
+    queryClient.invalidateQueries({ queryKey: ["brands"] });
+  };
 
   return (
     <div className="space-y-5">
@@ -129,23 +158,47 @@ export function BrandManufacturerStep({ data, onChange }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Combo
-          label="Manufacturer / OEM"
-          placeholder="Select manufacturer..."
-          items={manufacturers}
-          value={data.manufacturerId}
-          onChange={(id) => onChange({ manufacturerId: id, brandId: "" })}
-        />
-        <Combo
-          label="Brand"
-          placeholder="Select brand..."
-          items={brands}
-          value={data.brandId}
-          disabled={!manufacturerId}
-          onChange={(id) => onChange({ ...data, brandId: id })}
-        />
-      </div>
+      {manufacturersLoading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Combo
+            label="Manufacturer / OEM"
+            placeholder="Select manufacturer..."
+            items={manufacturers}
+            value={data.manufacturerId}
+            onChange={(id) => onChange({ manufacturerId: id, brandId: "" })}
+            onAddNew={() => setManufacturerModalOpen(true)}
+            addNewLabel="Add new manufacturer..."
+          />
+          <Combo
+            label="Brand"
+            placeholder="Select brand..."
+            items={brands}
+            value={data.brandId}
+            disabled={!manufacturerId}
+            onChange={(id) => onChange({ ...data, brandId: id })}
+            onAddNew={manufacturerId ? () => setBrandModalOpen(true) : undefined}
+            addNewLabel="Add new brand..."
+          />
+        </div>
+      )}
+
+      <ManufacturerModal
+        isOpen={manufacturerModalOpen}
+        onClose={() => setManufacturerModalOpen(false)}
+        manufacturer={null}
+        onSaved={refresh}
+      />
+
+      <BrandModal
+        isOpen={brandModalOpen}
+        onClose={() => setBrandModalOpen(false)}
+        brand={null}
+        onSaved={refresh}
+      />
     </div>
   );
 }

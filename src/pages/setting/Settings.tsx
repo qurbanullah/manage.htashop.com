@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui";
 import {
   User,
@@ -9,11 +10,18 @@ import {
   AlertTriangle,
   Trash2,
   ChevronDown,
+  MapPin,
+  Plus,
+  Pencil,
+  Star,
+  Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { AvatarUpload } from "@/components/shared/AvatarUpload";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { addressesApi, type AddressData } from "@/api/addresses";
+import { AddressModal } from "@/components/addresses/AddressModal";
 
 export function Settings() {
   const { user, logout } = useAuthStore();
@@ -23,6 +31,46 @@ export function Settings() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<AddressData | null>(null);
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: addresses = [], isLoading: addressesLoading } = useQuery({
+    queryKey: ["addresses", "user"],
+    queryFn: () => addressesApi.list("user"),
+  });
+
+  const openAddAddress = () => {
+    setEditingAddress(null);
+    setAddressModalOpen(true);
+  };
+
+  const openEditAddress = (address: AddressData) => {
+    setEditingAddress(address);
+    setAddressModalOpen(true);
+  };
+
+  const handleDeleteAddress = async (address: AddressData) => {
+    setDeletingAddressId(address.uuid);
+    try {
+      await addressesApi.remove(address.uuid);
+      await queryClient.invalidateQueries({ queryKey: ["addresses", "user"] });
+    } catch {
+      // non-fatal: keep the list as-is
+    } finally {
+      setDeletingAddressId(null);
+    }
+  };
+
+  const handleSetPrimary = async (address: AddressData) => {
+    try {
+      await addressesApi.setPrimary(address.uuid);
+      await queryClient.invalidateQueries({ queryKey: ["addresses", "user"] });
+    } catch {
+      // non-fatal
+    }
+  };
 
   const tabs = [
     {
@@ -42,6 +90,12 @@ export function Settings() {
       label: "Privacy & Security",
       icon: Shield,
       description: "Control your data and security",
+    },
+    {
+      id: "addresses",
+      label: "Addresses",
+      icon: MapPin,
+      description: "Manage your shipping and billing addresses",
     },
   ];
 
@@ -424,9 +478,128 @@ export function Settings() {
                 </div>
               </div>
             )}
+
+            {activeTab === "addresses" && (
+              <div className="p-4 sm:p-6 lg:p-8">
+                <div className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:mb-8">
+                  <div>
+                    <h2 className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl dark:text-white">
+                      Addresses
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Manage your shipping and billing addresses
+                    </p>
+                  </div>
+                  <button
+                    onClick={openAddAddress}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Address
+                  </button>
+                </div>
+
+                {addressesLoading ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                ) : addresses.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center dark:border-gray-700">
+                    <MapPin className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                    <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+                      No addresses yet
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Add a shipping or billing address to get started.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {addresses.map((address) => (
+                      <div
+                        key={address.uuid}
+                        className="relative rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900/40"
+                      >
+                        <div className="mb-2 flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 capitalize dark:bg-blue-900/30 dark:text-blue-300">
+                              {address.type}
+                            </span>
+                            {address.is_primary && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                <Star className="h-3 w-3" />
+                                Primary
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openEditAddress(address)}
+                              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                              aria-label="Edit address"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAddress(address)}
+                              disabled={deletingAddressId === address.uuid}
+                              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                              aria-label="Delete address"
+                            >
+                              {deletingAddressId === address.uuid ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {address.label || address.contact_name || "Address"}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                          {address.address_line_1}
+                          {address.address_line_2 ? `, ${address.address_line_2}` : ""}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {[address.city, address.state, address.postal_code].filter(Boolean).join(", ")}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {address.country?.name ?? ""}
+                        </p>
+                        {address.contact_name && (
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {address.contact_name}
+                            {address.phone ? ` · ${address.phone}` : ""}
+                          </p>
+                        )}
+                        {!address.is_primary && (
+                          <button
+                            onClick={() => handleSetPrimary(address)}
+                            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                          >
+                            <Star className="h-3 w-3" />
+                            Set as primary
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <AddressModal
+        isOpen={addressModalOpen}
+        onClose={() => setAddressModalOpen(false)}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["addresses", "user"] })}
+        address={editingAddress}
+        addressableType="user"
+      />
     </div>
   );
 }

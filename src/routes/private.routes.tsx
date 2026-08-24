@@ -11,6 +11,7 @@ const WarehousesPage = lazy(() => import("@/pages/warehouses/WarehousesPage"));
 const ManufacturersPage = lazy(() => import("@/pages/manufacturers/ManufacturersPage"));
 const BrandsPage = lazy(() => import("@/pages/brands/BrandsPage"));
 const OrdersPage = lazy(() => import("@/pages/orders/OrdersPage"));
+const OrderDetailPage = lazy(() => import("@/pages/orders/OrderDetailPage"));
 const Settings = lazy(() =>
   import("@/pages/setting/Settings").then((m) => ({ default: m.Settings })),
 );
@@ -26,6 +27,7 @@ export function PrivateRoutes() {
         <Route path={paths.manufacturers} element={<ManufacturersPage />} />
         <Route path={paths.brands} element={<BrandsPage />} />
         <Route path={paths.orders} element={<OrdersPage />} />
+        <Route path={`${paths.orders}/:uuid`} element={<OrderDetailPage />} />
         <Route path={paths.settings} element={<Settings />} />
       </Route>
     </Route>

@@ -8,6 +8,11 @@ export interface Brand {
   manufacturer_id?: number | null;
   name: string;
   slug: string;
+  origin?: string;
+  is_approved?: boolean;
+  approved_at?: string | null;
+  rejected_at?: string | null;
+  rejection_reason?: string | null;
   logo?: string | null;
   website?: string | null;
   description?: string | null;

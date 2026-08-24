@@ -1,26 +1,49 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { paths } from "@/routes/paths";
 import { cn } from "@/lib/utils";
-import { Package, ClipboardList, Settings, ShoppingCart, Warehouse, Factory, Tag, X } from "lucide-react";
+import {
+  Package,
+  ClipboardList,
+  Settings,
+  ShoppingCart,
+  Warehouse,
+  X,
+  LayoutGrid,
+  ChevronDown,
+} from "lucide-react";
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
 }
 
-const NAV_ITEMS = [
-  { to: paths.dashboard, label: "Dashboard", icon: Package },
+const PRIMARY_ITEMS = [
+  { to: paths.dashboard, label: "Dashboard", icon: LayoutGrid },
   { to: paths.products, label: "Products", icon: ShoppingCart },
-  { to: paths.warehouses, label: "Warehouses", icon: Warehouse },
-  { to: paths.manufacturers, label: "Manufacturers", icon: Factory },
-  { to: paths.brands, label: "Brands", icon: Tag },
-  { to: "/punchout", label: "Punchout", icon: ClipboardList },
-  { to: paths.orders, label: "Orders", icon: ShoppingCart },
-  { to: paths.settings, label: "Settings", icon: Settings },
+  { to: paths.orders, label: "Orders", icon: ClipboardList },
 ];
+
+/**
+ * Less frequently used pages are grouped under a collapsible accordion so the
+ * primary navigation stays focused (industry-standard pattern for admin UIs).
+ */
+const MANAGEMENT_ITEMS = [
+  { to: paths.warehouses, label: "Warehouses", icon: Warehouse },
+];
+
+function isActivePath(pathname: string, to: string): boolean {
+  return pathname === to || pathname.startsWith(to + "/");
+}
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
+
+  // The accordion is user-controlled only — closed by default.
+  const [managementOpen, setManagementOpen] = useState(false);
+
+  const managementActive = MANAGEMENT_ITEMS.some((item) => isActivePath(location.pathname, item.to));
+  const settingsActive = isActivePath(location.pathname, paths.settings);
 
   return (
     <>
@@ -47,8 +70,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Nav items */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {NAV_ITEMS.map((item) => {
-            const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
+          {PRIMARY_ITEMS.map((item) => {
+            const active = isActivePath(location.pathname, item.to);
             return (
               <Link
                 key={item.to}
@@ -66,6 +89,70 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               </Link>
             );
           })}
+
+          {/* Management accordion */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setManagementOpen((v) => !v)}
+              className={cn(
+                "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                managementActive
+                  ? "text-blue-700 dark:text-blue-300"
+                  : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
+              )}
+            >
+              <span className="flex items-center gap-3">
+                <Package className="h-5 w-5 shrink-0" />
+                Management
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform duration-200",
+                  managementOpen ? "rotate-180" : "",
+                )}
+              />
+            </button>
+
+            {managementOpen && (
+              <div className="mt-1 space-y-1 border-l border-gray-100 pl-3 ml-3 dark:border-gray-700">
+                {MANAGEMENT_ITEMS.map((item) => {
+                  const active = isActivePath(location.pathname, item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                          : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Settings */}
+          <Link
+            to={paths.settings}
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              settingsActive
+                ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
+            )}
+          >
+            <Settings className="h-5 w-5 shrink-0" />
+            Settings
+          </Link>
         </nav>
       </aside>
     </>
