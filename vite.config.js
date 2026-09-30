@@ -24,21 +24,23 @@ export default defineConfig({
         outDir: "dist",
         assetsDir: "assets",
         sourcemap: false,
-        minify: "esbuild",
+        // minify defaults to the rolldown/oxc minifier — esbuild is not installed
         target: "esnext",
         rollupOptions: {
             output: {
-                manualChunks: {
-                    vendor: ["react", "react-dom"],
-                    router: ["react-router-dom"],
-                    ui: [
-                        "@radix-ui/react-dialog",
-                        "@radix-ui/react-dropdown-menu",
-                        "@radix-ui/react-toast",
-                        "@radix-ui/react-tooltip",
-                    ],
-                    utils: ["ky", "@tanstack/react-query", "zustand"],
-                    animations: ["framer-motion"],
+                // Vite 8 bundles with Rolldown, which requires `manualChunks`
+                // to be a function — the object form throws "manualChunks is
+                // not a function" and fails the production image build. This
+                // mirrors admin/ and frontend/, which were already migrated.
+                manualChunks(id) {
+                    if (!id.includes("node_modules")) return undefined;
+                    if (id.includes("@radix-ui")) return "ui";
+                    if (id.includes("react-router-dom")) return "router";
+                    if (id.includes("@tanstack")) return "utils";
+                    if (id.includes("framer-motion")) return "animations";
+                    if (id.includes("ky") || id.includes("zustand")) return "utils";
+                    if (id.includes("react")) return "vendor";
+                    return undefined;
                 },
             },
         },

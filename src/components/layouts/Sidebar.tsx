@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Settings,
   ShoppingCart,
+  TicketPercent,
   Warehouse,
   X,
   LayoutGrid,
@@ -30,6 +31,7 @@ const PRIMARY_ITEMS = [
  */
 const MANAGEMENT_ITEMS = [
   { to: paths.warehouses, label: "Warehouses", icon: Warehouse },
+  { to: paths.coupons, label: "Discounts", icon: TicketPercent },
 ];
 
 function isActivePath(pathname: string, to: string): boolean {

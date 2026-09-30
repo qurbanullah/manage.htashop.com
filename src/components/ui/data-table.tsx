@@ -1,5 +1,15 @@
 import * as React from 'react'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Loader2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronsUpDown,
+  ChevronUp,
+  Search,
+  Loader2,
+} from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -16,6 +26,8 @@ export interface Column<T> {
   key: string
   label: string
   sortable?: boolean
+  /** Server-side sort field when it differs from the row accessor `key`. */
+  sortKey?: string
   render?: (value: any, row: T) => React.ReactNode
   className?: string
   headerClassName?: string
@@ -37,6 +49,10 @@ export interface DataTableProps<T> {
   searchable?: boolean
   searchPlaceholder?: string
   onSearch?: (query: string) => void
+  // Sorting (optional, server-side)
+  sortKey?: string
+  sortOrder?: 'asc' | 'desc'
+  onSortChange?: (key: string, order: 'asc' | 'desc') => void
   // Selection
   selectable?: boolean
   selectedRows?: Set<string | number>
@@ -62,6 +78,9 @@ export function DataTable<T>({
   searchable = false,
   searchPlaceholder = 'Search...',
   onSearch,
+  sortKey: activeSortKey,
+  sortOrder = 'asc',
+  onSortChange,
   selectable = false,
   selectedRows = new Set(),
   onRowSelect,
@@ -126,14 +145,42 @@ export function DataTable<T>({
                   />
                 </TableHead>
               )}
-              {columns.map((column) => (
-                <TableHead
-                  key={column.key}
-                  className={cn(column.headerClassName)}
-                >
-                  {column.label}
-                </TableHead>
-              ))}
+              {columns.map((column) => {
+                const columnSortKey = column.sortKey ?? column.key
+                const isSorted = activeSortKey === columnSortKey
+                return (
+                  <TableHead
+                    key={column.key}
+                    className={cn(column.headerClassName)}
+                  >
+                    {column.sortable && onSortChange ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onSortChange(
+                            columnSortKey,
+                            isSorted && sortOrder === 'asc' ? 'desc' : 'asc'
+                          )
+                        }
+                        className="inline-flex items-center gap-1 font-medium transition-colors hover:text-gray-900 dark:hover:text-gray-100"
+                      >
+                        {column.label}
+                        {isSorted ? (
+                          sortOrder === 'asc' ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          )
+                        ) : (
+                          <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
+                        )}
+                      </button>
+                    ) : (
+                      column.label
+                    )}
+                  </TableHead>
+                )
+              })}
               {actions && <TableHead className="w-20 text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
