@@ -46,7 +46,7 @@ i18n
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
-      lookupLocalStorage: 'solarlits_language',
+      lookupLocalStorage: 'htashop_language',
     },
     
     interpolation: {

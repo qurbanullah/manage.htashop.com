@@ -45,9 +45,10 @@ RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html
 
-# Add healthcheck (targets the internal port 22050)
+# Add healthcheck (targets the internal port 22050). nginx:alpine ships wget,
+# not curl — a curl probe always fails and marks the task unhealthy.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:22050/health || exit 1
+    CMD wget -q -O /dev/null http://localhost:22050/health || exit 1
 
 # Expose internal port for manage
 EXPOSE 22050

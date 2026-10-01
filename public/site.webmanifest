@@ -1,7 +1,7 @@
 {
-  "name": "solarlits",
-  "short_name": "solarlits",
-  "description": "Shop the latest styles and manage your solarlits account on any device.",
+  "name": "HTAShop",
+  "short_name": "HTAShop",
+  "description": "Shop the latest products and manage your HTAShop account on any device.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

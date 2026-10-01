@@ -15,9 +15,9 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration variables (adjust per service)
-STACK_NAME="solarlits"
-SERVICE_NAME="track"  # Change this for each service: api, frontend, track, admin
-NODE_USER="solarlits"
+STACK_NAME="htashop"
+SERVICE_NAME="manage"  # Change this for each service: api, frontend, manage, admin
+NODE_USER="htashop"
 MANAGER_HOST="213.199.42.178"  # The swarm manager hostname
 NODE_HOST="${MANAGER_HOST}"  # Load image on the manager node
 IMAGES_DIR="../deploy/images"
