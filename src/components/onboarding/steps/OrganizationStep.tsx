@@ -1,10 +1,10 @@
-import { Building2, Globe } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Building2, Globe } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface Props {
-  data: { organization: string; website: string };
-  onChange: (data: { organization: string; website: string }) => void;
+  data: { organization: string; website: string }
+  onChange: (data: { organization: string; website: string }) => void
 }
 
 export function OrganizationStep({ data, onChange }: Props) {
@@ -15,13 +15,15 @@ export function OrganizationStep({ data, onChange }: Props) {
           <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Organization</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Tell us about your company</p>
+          <h2 className="font-semibold text-gray-900 text-lg dark:text-white">Organization</h2>
+          <p className="text-gray-500 text-sm dark:text-gray-400">Tell us about your company</p>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Organization name</Label>
+        <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
+          Organization name
+        </Label>
         <Input
           value={data.organization}
           onChange={(e) => onChange({ ...data, organization: e.target.value })}
@@ -31,9 +33,11 @@ export function OrganizationStep({ data, onChange }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Website (optional)</Label>
+        <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
+          Website (optional)
+        </Label>
         <div className="relative">
-          <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Globe className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             value={data.website}
             onChange={(e) => onChange({ ...data, website: e.target.value })}
@@ -43,5 +47,5 @@ export function OrganizationStep({ data, onChange }: Props) {
         </div>
       </div>
     </div>
-  );
+  )
 }

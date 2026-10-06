@@ -1,10 +1,10 @@
-import { Package } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Package } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface Props {
-  data: { name: string; sellerSku: string; summary: string };
-  onChange: (data: { name: string; sellerSku: string; summary: string }) => void;
+  data: { name: string; sellerSku: string; summary: string }
+  onChange: (data: { name: string; sellerSku: string; summary: string }) => void
 }
 
 export function VariantBasicStep({ data, onChange }: Props) {
@@ -15,13 +15,15 @@ export function VariantBasicStep({ data, onChange }: Props) {
           <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Variant Info</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Name and identifier for this variant</p>
+          <h2 className="font-semibold text-gray-900 text-lg dark:text-white">Variant Info</h2>
+          <p className="text-gray-500 text-sm dark:text-gray-400">
+            Name and identifier for this variant
+          </p>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
           Variant name <span className="ml-1 text-red-500">*</span>
         </Label>
         <Input
@@ -30,22 +32,24 @@ export function VariantBasicStep({ data, onChange }: Props) {
           placeholder='e.g. "Blue / Large" or "10mm"'
           className="h-11"
         />
-        <p className="text-xs text-gray-400">Describe what makes this variant different</p>
+        <p className="text-gray-400 text-xs">Describe what makes this variant different</p>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">System SKU</Label>
+        <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">System SKU</Label>
         <Input
           value=""
           placeholder="Auto-generated on save (e.g. HTA-EL-2608-000001-BLU-XL)"
           disabled
           className="h-11 font-mono disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-400"
         />
-        <p className="text-xs text-gray-400">Generated from the product SKU and variant options. Not editable.</p>
+        <p className="text-gray-400 text-xs">
+          Generated from the product SKU and variant options. Not editable.
+        </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
           Seller SKU <span className="ml-1 font-normal text-gray-400">(optional)</span>
         </Label>
         <Input
@@ -54,11 +58,13 @@ export function VariantBasicStep({ data, onChange }: Props) {
           placeholder='e.g. "PROD-BLUE-L"'
           className="h-11 font-mono"
         />
-        <p className="text-xs text-gray-400">Your own SKU if you already have one in an existing system</p>
+        <p className="text-gray-400 text-xs">
+          Your own SKU if you already have one in an existing system
+        </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
           Summary <span className="font-normal text-gray-400">(optional)</span>
         </Label>
         <Input
@@ -69,5 +75,5 @@ export function VariantBasicStep({ data, onChange }: Props) {
         />
       </div>
     </div>
-  );
+  )
 }

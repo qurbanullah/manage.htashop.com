@@ -1,55 +1,55 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  ChevronDown,
+  Eye,
+  Layers,
+  Loader2,
   Package,
+  Pencil,
   Plus,
   Search,
-  Loader2,
-  ChevronDown,
-  X,
-  Eye,
-  Pencil,
-  Layers,
   Tag,
-} from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { AddProductModal } from "@/components/products/create/modals/AddProductModal";
-import { UpdateProductModal } from "@/components/products/update/UpdateProductModal";
-import { productsApi, type ProductData } from "@/api/products";
-import { categoriesApi, type Category } from "@/api/categories";
+  X,
+} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { type Category, categoriesApi } from '@/api/categories'
+import { type ProductData, productsApi } from '@/api/products'
+import { AddProductModal } from '@/components/products/create/modals/AddProductModal'
+import { UpdateProductModal } from '@/components/products/update/UpdateProductModal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 function formatMoney(value: number | string | null | undefined, currency?: string | null) {
-  const num = Number(value);
-  if (!Number.isFinite(num) || num <= 0) return null;
-  return `${currency ?? "USD"} ${num.toLocaleString()}`;
+  const num = Number(value)
+  if (!Number.isFinite(num) || num <= 0) return null
+  return `${currency ?? 'USD'} ${num.toLocaleString()}`
 }
 
 function statusStyles(status: string) {
   switch (status) {
-    case "active":
-    case "published":
-      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-    case "draft":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+    case 'active':
+    case 'published':
+      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    case 'draft':
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     default:
-      return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
+      return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
   }
 }
 
 interface ProductCardProps {
-  product: ProductData;
-  onEdit: (product: ProductData) => void;
+  product: ProductData
+  onEdit: (product: ProductData) => void
 }
 
 function ProductCard({ product, onEdit }: ProductCardProps) {
-  const price = formatMoney(product.price, product.currency);
-  const salePrice = formatMoney(product.sale_price, product.currency);
-  const showSale = salePrice && product.price && Number(product.sale_price) < Number(product.price);
-  const brand = product.brands?.[0];
-  const category = product.categories?.[0];
-  const variantCount = product.variants?.length ?? 0;
+  const price = formatMoney(product.price, product.currency)
+  const salePrice = formatMoney(product.sale_price, product.currency)
+  const showSale = salePrice && product.price && Number(product.sale_price) < Number(product.price)
+  const brand = product.brands?.[0]
+  const category = product.categories?.[0]
+  const variantCount = product.variants?.length ?? 0
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700">
@@ -71,12 +71,12 @@ function ProductCard({ product, onEdit }: ProductCardProps) {
           </div>
         )}
         <span
-          className={`absolute left-2.5 top-2.5 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize shadow-sm ${statusStyles(product.status)}`}
+          className={`absolute top-2.5 left-2.5 inline-flex rounded-full px-2 py-0.5 font-semibold text-[11px] capitalize shadow-sm ${statusStyles(product.status)}`}
         >
-          {product.status || "draft"}
+          {product.status || 'draft'}
         </span>
         {product.sku && (
-          <span className="absolute right-2.5 top-2.5 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[10px] text-white backdrop-blur-sm">
+          <span className="absolute top-2.5 right-2.5 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[10px] text-white backdrop-blur-sm">
             {product.sku}
           </span>
         )}
@@ -87,32 +87,34 @@ function ProductCard({ product, onEdit }: ProductCardProps) {
         <div className="flex items-start justify-between gap-2">
           <Link
             to={`/products/${product.route_key}`}
-            className="line-clamp-2 text-sm font-semibold text-gray-900 transition-colors hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
+            className="line-clamp-2 font-semibold text-gray-900 text-sm transition-colors hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
           >
             {product.name}
           </Link>
         </div>
 
         {product.summary && (
-          <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">{product.summary}</p>
+          <p className="mt-1 line-clamp-2 text-gray-500 text-xs dark:text-gray-400">
+            {product.summary}
+          </p>
         )}
 
         {/* Price */}
         <div className="mt-3 flex items-baseline gap-2">
           {showSale ? (
             <>
-              <span className="text-base font-bold text-gray-900 dark:text-white">{salePrice}</span>
-              <span className="text-xs text-gray-400 line-through">{price}</span>
+              <span className="font-bold text-base text-gray-900 dark:text-white">{salePrice}</span>
+              <span className="text-gray-400 text-xs line-through">{price}</span>
             </>
           ) : price ? (
-            <span className="text-base font-bold text-gray-900 dark:text-white">{price}</span>
+            <span className="font-bold text-base text-gray-900 dark:text-white">{price}</span>
           ) : (
-            <span className="text-xs text-gray-400">Price not set</span>
+            <span className="text-gray-400 text-xs">Price not set</span>
           )}
           {variantCount > 0 && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 font-medium text-[11px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               <Layers className="h-3 w-3" />
-              {variantCount} {variantCount === 1 ? "variant" : "variants"}
+              {variantCount} {variantCount === 1 ? 'variant' : 'variants'}
             </span>
           )}
         </div>
@@ -120,30 +122,31 @@ function ProductCard({ product, onEdit }: ProductCardProps) {
         {/* Meta chips */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {brand && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-medium text-[11px] text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               <Tag className="h-3 w-3" />
               {brand.name}
             </span>
           )}
           {category && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 font-medium text-[11px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               {category.name}
             </span>
           )}
         </div>
 
         {/* Footer actions */}
-        <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-700">
+        <div className="mt-4 flex items-center gap-2 border-gray-100 border-t pt-3 dark:border-gray-700">
           <Link
             to={`/products/${product.route_key}`}
-            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 font-semibold text-gray-700 text-xs transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             <Eye className="h-3.5 w-3.5" />
             View
           </Link>
           <button
+            type="button"
             onClick={() => onEdit(product)}
-            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 font-semibold text-gray-700 text-xs transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -151,94 +154,101 @@ function ProductCard({ product, onEdit }: ProductCardProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: legacy list page
 export default function ProductsPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [categorySearch, setCategorySearch] = useState("");
-  const categoryRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<ProductData | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const [categorySearch, setCategorySearch] = useState('')
+  const categoryRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categories", "tree"],
+    queryKey: ['categories', 'tree'],
     queryFn: () => categoriesApi.tree(),
     staleTime: 10 * 60 * 1000,
-  });
+  })
 
   // Flatten the category tree for a searchable single-select filter
   const flatCategories = useMemo(() => {
-    const result: Category[] = [];
+    const result: Category[] = []
     const flatten = (cats: Category[]) => {
       for (const c of cats) {
-        result.push(c);
-        if (c.children) flatten(c.children);
+        result.push(c)
+        if (c.children) flatten(c.children)
       }
-    };
-    flatten(categories);
-    return result;
-  }, [categories]);
+    }
+    flatten(categories)
+    return result
+  }, [categories])
 
-  const selectedCategory = flatCategories.find((c) => String(c.id) === categoryId);
+  const selectedCategory = flatCategories.find((c) => String(c.id) === categoryId)
   const filteredCategories = categorySearch.trim()
     ? flatCategories.filter((c) => c.name.toLowerCase().includes(categorySearch.toLowerCase()))
-    : flatCategories;
+    : flatCategories
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
-        setCategoryOpen(false);
-        setCategorySearch("");
+        setCategoryOpen(false)
+        setCategorySearch('')
       }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
-  const hasFilters = Boolean(search || status || categoryId);
+  const hasFilters = Boolean(search || status || categoryId)
 
   const clearFilters = () => {
-    setSearch("");
-    setStatus("");
-    setCategoryId("");
-  };
+    setSearch('')
+    setStatus('')
+    setCategoryId('')
+  }
 
-  const { data: productsRes, isLoading, isError } = useQuery({
-    queryKey: ["products", search, status, categoryId],
+  const {
+    data: productsRes,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['products', search, status, categoryId],
     queryFn: () => {
-      const params: Record<string, string | number> = {};
-      if (search) params.search = search;
-      if (status) params.status = status;
-      if (categoryId) params.category_id = Number(categoryId);
-      return productsApi.list(Object.keys(params).length ? params : undefined);
+      const params: Record<string, string | number> = {}
+      if (search) params.search = search
+      if (status) params.status = status
+      if (categoryId) params.category_id = Number(categoryId)
+      return productsApi.list(Object.keys(params).length ? params : undefined)
     },
     staleTime: 0, // Always fetch fresh data after create
-  });
+  })
 
   // Backend wraps paginated collection: { data: { data: [...], links, meta } }
   // Also handles flat array if pagination is absent
-  const rawData = productsRes?.data as Record<string, unknown> | undefined;
-  const products = (Array.isArray(rawData?.data) ? rawData.data : Array.isArray(rawData) ? rawData : []) as ProductData[];
-  const hasProducts = products.length > 0;
+  const rawData = productsRes?.data as Record<string, unknown> | undefined
+  const products = (
+    Array.isArray(rawData?.data) ? rawData.data : Array.isArray(rawData) ? rawData : []
+  ) as ProductData[]
+  const hasProducts = products.length > 0
 
   const openEdit = (product: ProductData) => {
-    setEditingProduct(product);
-    setIsEditOpen(true);
-  };
+    setEditingProduct(product)
+    setIsEditOpen(true)
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="font-bold text-2xl text-gray-900 dark:text-white">Products</h1>
+          <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
             Manage your product catalog
           </p>
         </div>
@@ -256,7 +266,7 @@ export default function ProductsPage() {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               id="product-search"
               name="product-search"
@@ -273,7 +283,7 @@ export default function ProductsPage() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+            className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
             <option value="">All statuses</option>
             <option value="draft">Draft</option>
@@ -286,10 +296,12 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() => setCategoryOpen(!categoryOpen)}
-              className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-left text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-left text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
             >
               {selectedCategory ? (
-                <span className="truncate text-gray-700 dark:text-gray-200">{selectedCategory.name}</span>
+                <span className="truncate text-gray-700 dark:text-gray-200">
+                  {selectedCategory.name}
+                </span>
               ) : (
                 <span className="text-gray-400">All categories</span>
               )}
@@ -297,10 +309,10 @@ export default function ProductsPage() {
             </button>
 
             {categoryOpen && (
-              <div className="absolute left-0 top-full z-20 mt-1 max-h-72 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
-                <div className="border-b border-gray-100 p-2 dark:border-gray-700">
+              <div className="absolute top-full left-0 z-20 mt-1 max-h-72 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                <div className="border-gray-100 border-b p-2 dark:border-gray-700">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                    <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
                     <Input
                       value={categorySearch}
                       onChange={(e) => setCategorySearch(e.target.value)}
@@ -314,11 +326,11 @@ export default function ProductsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setCategoryId("");
-                      setCategoryOpen(false);
-                      setCategorySearch("");
+                      setCategoryId('')
+                      setCategoryOpen(false)
+                      setCategorySearch('')
                     }}
-                    className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700/50"
+                    className="flex w-full items-center px-3 py-2 text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700/50"
                   >
                     All categories
                   </button>
@@ -327,17 +339,17 @@ export default function ProductsPage() {
                       key={c.id}
                       type="button"
                       onClick={() => {
-                        setCategoryId(String(c.id));
-                        setCategoryOpen(false);
-                        setCategorySearch("");
+                        setCategoryId(String(c.id))
+                        setCategoryOpen(false)
+                        setCategorySearch('')
                       }}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                        String(c.id) === categoryId ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                        String(c.id) === categoryId ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                       }`}
                     >
                       <span className="truncate text-gray-700 dark:text-gray-200">{c.name}</span>
                       {c.level !== undefined && c.level > 0 && (
-                        <span className="ml-2 shrink-0 text-xs text-gray-400">sub</span>
+                        <span className="ml-2 shrink-0 text-gray-400 text-xs">sub</span>
                       )}
                     </button>
                   ))}
@@ -347,7 +359,11 @@ export default function ProductsPage() {
           </div>
 
           {hasFilters && (
-            <Button variant="ghost" onClick={clearFilters} className="inline-flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-2"
+            >
               <X className="h-4 w-4" />
               Clear
             </Button>
@@ -364,10 +380,12 @@ export default function ProductsPage() {
 
       {/* Error */}
       {isError && (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-red-200 py-20 dark:border-red-800">
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-red-200 border-dashed py-20 dark:border-red-800">
           <Package className="mb-4 h-12 w-12 text-red-300 dark:text-red-600" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Failed to load products</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Please try again later.</p>
+          <h3 className="font-medium text-gray-900 text-lg dark:text-white">
+            Failed to load products
+          </h3>
+          <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">Please try again later.</p>
         </div>
       )}
 
@@ -382,21 +400,30 @@ export default function ProductsPage() {
 
       {/* Empty state */}
       {!isLoading && !isError && !hasProducts && (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-20 dark:border-gray-700">
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-gray-200 border-dashed py-20 dark:border-gray-700">
           <Package className="mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {hasFilters ? "No products match your filters" : "No products yet"}
+          <h3 className="font-medium text-gray-900 text-lg dark:text-white">
+            {hasFilters ? 'No products match your filters' : 'No products yet'}
           </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {hasFilters ? "Try adjusting or clearing your filters." : "Get started by adding your first product to the catalog."}
+          <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
+            {hasFilters
+              ? 'Try adjusting or clearing your filters.'
+              : 'Get started by adding your first product to the catalog.'}
           </p>
           {hasFilters ? (
-            <Button className="mt-6 inline-flex items-center gap-2" variant="outline" onClick={clearFilters}>
+            <Button
+              className="mt-6 inline-flex items-center gap-2"
+              variant="outline"
+              onClick={clearFilters}
+            >
               <X className="h-4 w-4" />
               Clear filters
             </Button>
           ) : (
-            <Button className="mt-6 inline-flex items-center gap-2" onClick={() => setIsModalOpen(true)}>
+            <Button
+              className="mt-6 inline-flex items-center gap-2"
+              onClick={() => setIsModalOpen(true)}
+            >
               <Plus className="h-4 w-4" />
               Add your first product
             </Button>
@@ -408,8 +435,8 @@ export default function ProductsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onCreated={() => {
-          setIsModalOpen(false);
-          queryClient.invalidateQueries({ queryKey: ["products"] });
+          setIsModalOpen(false)
+          queryClient.invalidateQueries({ queryKey: ['products'] })
         }}
       />
 
@@ -419,11 +446,11 @@ export default function ProductsPage() {
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
           onUpdated={() => {
-            setIsEditOpen(false);
-            queryClient.invalidateQueries({ queryKey: ["products"] });
+            setIsEditOpen(false)
+            queryClient.invalidateQueries({ queryKey: ['products'] })
           }}
         />
       )}
     </div>
-  );
+  )
 }

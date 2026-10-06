@@ -1,10 +1,10 @@
-import { lazy } from "react";
-import { Route } from "react-router-dom";
-import { paths } from "@/routes/paths";
-import { AuthLayout } from "@/components/layouts/AuthLayout";
+import { lazy } from 'react'
+import { Route } from 'react-router-dom'
+import { AuthLayout } from '@/components/layouts/AuthLayout'
+import { paths } from '@/routes/paths'
 
-const VerifyEmail = lazy(() => import("@/pages/auth/VerifyEmail"));
-const NotFound = lazy(() => import("@/pages/error/NotFound"));
+const VerifyEmail = lazy(() => import('@/pages/auth/VerifyEmail'))
+const NotFound = lazy(() => import('@/pages/error/NotFound'))
 
 /**
  * Public routes — no auth guard, no redirect.
@@ -16,5 +16,5 @@ export function PublicRoutes() {
       <Route path={paths.verifyEmail} element={<VerifyEmail />} />
       <Route path="*" element={<NotFound />} />
     </Route>
-  );
+  )
 }

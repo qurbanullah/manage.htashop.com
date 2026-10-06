@@ -1,108 +1,111 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useQuery } from '@tanstack/react-query'
 import {
-  Package,
-  Layers,
   AlertTriangle,
-  Boxes,
-  ShoppingCart,
-  DollarSign,
-  ReceiptText,
-  Clock,
-  RefreshCw,
-  Inbox,
   ArrowRight,
-} from "lucide-react";
+  Boxes,
+  Clock,
+  DollarSign,
+  Inbox,
+  Layers,
+  Package,
+  ReceiptText,
+  RefreshCw,
+  ShoppingCart,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-} from "recharts";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { dashboardApi } from "@/api/dashboard";
-import { StatsCard } from "@/components/ui/stats-card";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { paths } from "@/routes/paths";
+} from 'recharts'
+import { dashboardApi } from '@/api/dashboard'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatsCard } from '@/components/ui/stats-card'
+import { useAuth } from '@/hooks/auth/useAuth'
+import { paths } from '@/routes/paths'
 
-const PIE_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#14b8a6", "#f59e0b", "#ef4444", "#6b7280"];
+const PIE_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#6b7280']
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  processing: "Processing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-  refunded: "Refunded",
-};
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  processing: 'Processing',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+  refunded: 'Refunded',
+}
 
 const ORDER_STATUS_COLORS: Record<string, string> = {
-  pending: "#f59e0b",
-  confirmed: "#3b82f6",
-  processing: "#8b5cf6",
-  shipped: "#14b8a6",
-  delivered: "#10b981",
-  cancelled: "#ef4444",
-  refunded: "#6b7280",
-};
+  pending: '#f59e0b',
+  confirmed: '#3b82f6',
+  processing: '#8b5cf6',
+  shipped: '#14b8a6',
+  delivered: '#10b981',
+  cancelled: '#ef4444',
+  refunded: '#6b7280',
+}
 
 function currency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value)
 }
 
 function statusColor(status: string, index: number) {
-  return ORDER_STATUS_COLORS[status] ?? PIE_COLORS[index % PIE_COLORS.length];
+  return ORDER_STATUS_COLORS[status] ?? PIE_COLORS[index % PIE_COLORS.length]
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: legacy dashboard page
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user } = useAuth()
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ['dashboard'],
     queryFn: () => dashboardApi.summary(),
     staleTime: 60 * 1000,
-  });
+  })
 
-  const counts = data?.counts;
-  const byStatus = data?.orders_by_status ?? [];
-  const ordersByDay = data?.orders_by_day ?? [];
-  const revenueByDay = data?.revenue_by_day ?? [];
-  const recentOrders = data?.recent_orders ?? [];
+  const counts = data?.counts
+  const byStatus = data?.orders_by_status ?? []
+  const ordersByDay = data?.orders_by_day ?? []
+  const revenueByDay = data?.revenue_by_day ?? []
+  const recentOrders = data?.recent_orders ?? []
 
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading dashboard…</p>
+          <p className="mt-4 text-gray-500 text-sm dark:text-gray-400">Loading dashboard…</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (isError) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <Inbox className="h-12 w-12 text-red-300 dark:text-red-600" />
-        <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Failed to load dashboard</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Please try again.</p>
+        <h2 className="mt-4 font-semibold text-gray-900 text-lg dark:text-white">
+          Failed to load dashboard
+        </h2>
+        <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">Please try again.</p>
         <Button variant="outline" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="mr-1.5 h-4 w-4" />
           Retry
         </Button>
       </div>
-    );
+    )
   }
 
   return (
@@ -110,15 +113,15 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {user?.name ? `Welcome back, ${user.name}` : "Dashboard"}
+          <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+            {user?.name ? `Welcome back, ${user.name}` : 'Dashboard'}
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
             Orders, revenue, and catalog performance at a glance
           </p>
         </div>
         <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`mr-1.5 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw className={`mr-1.5 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -197,7 +200,9 @@ export default function Dashboard() {
           <CardContent>
             <div className="h-64">
               {ordersByDay.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-400">No data</div>
+                <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+                  No data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={ordersByDay} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -208,10 +213,25 @@ export default function Dashboard() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: "#9ca3af", fontSize: 12 }} tickFormatter={(v: string) => v.slice(5)} />
-                    <YAxis allowDecimals={false} tick={{ fill: "#9ca3af", fontSize: 12 }} width={28} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }} />
-                    <Area type="monotone" dataKey="count" name="Orders" stroke="#3b82f6" strokeWidth={2} fill="url(#ordersGradient)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      tickFormatter={(v: string) => v.slice(5)}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      width={28}
+                    />
+                    <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      name="Orders"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#ordersGradient)"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -227,7 +247,9 @@ export default function Dashboard() {
           <CardContent>
             <div className="h-64">
               {revenueByDay.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-400">No data</div>
+                <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+                  No data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={revenueByDay} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -238,10 +260,28 @@ export default function Dashboard() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: "#9ca3af", fontSize: 12 }} tickFormatter={(v: string) => v.slice(5)} />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 12 }} width={40} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }} formatter={(value) => currency(Number(value))} />
-                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={2} fill="url(#revenueGradient)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      tickFormatter={(v: string) => v.slice(5)}
+                    />
+                    <YAxis
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      width={40}
+                      tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
+                      formatter={(value) => currency(Number(value))}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      name="Revenue"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fill="url(#revenueGradient)"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -260,18 +300,31 @@ export default function Dashboard() {
           <CardContent>
             <div className="h-56">
               {byStatus.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-400">No data</div>
+                <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+                  No data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={byStatus} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={75} innerRadius={38}>
+                    <Pie
+                      data={byStatus}
+                      dataKey="count"
+                      nameKey="status"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={75}
+                      innerRadius={38}
+                    >
                       {byStatus.map((s, i) => (
                         <Cell key={s.status} fill={statusColor(s.status, i)} />
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value, name) => [value, ORDER_STATUS_LABELS[String(name)] ?? String(name)]}
-                      contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb" }}
+                      formatter={(value, name) => [
+                        value,
+                        ORDER_STATUS_LABELS[String(name)] ?? String(name),
+                      ]}
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -279,8 +332,14 @@ export default function Dashboard() {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {byStatus.map((s, i) => (
-                <span key={s.status} className="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: statusColor(s.status, i) }} />
+                <span
+                  key={s.status}
+                  className="inline-flex items-center gap-1.5 text-gray-600 text-xs dark:text-gray-300"
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: statusColor(s.status, i) }}
+                  />
                   {ORDER_STATUS_LABELS[s.status] ?? s.status} ({s.count})
                 </span>
               ))}
@@ -294,38 +353,50 @@ export default function Dashboard() {
               <CardTitle className="text-base">Latest Orders</CardTitle>
               <CardDescription>Most recent transactions</CardDescription>
             </div>
-            <Link to={paths.orders} className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400">
+            <Link
+              to={paths.orders}
+              className="inline-flex items-center gap-1 text-blue-600 text-sm hover:underline dark:text-blue-400"
+            >
               View all <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardHeader>
           <CardContent>
             {recentOrders.length === 0 ? (
-              <p className="py-6 text-center text-sm text-gray-400">No orders yet.</p>
+              <p className="py-6 text-center text-gray-400 text-sm">No orders yet.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-gray-200 dark:border-gray-700">
-                    <tr className="text-xs uppercase tracking-wide text-gray-400">
+                  <thead className="border-gray-200 border-b dark:border-gray-700">
+                    <tr className="text-gray-400 text-xs uppercase tracking-wide">
                       <th className="px-3 py-2 font-medium">Order</th>
                       <th className="px-3 py-2 font-medium">Customer</th>
                       <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 font-medium text-right">Amount</th>
+                      <th className="px-3 py-2 text-right font-medium">Amount</th>
                       <th className="px-3 py-2 font-medium">Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {recentOrders.map((o) => (
                       <tr key={o.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{o.order_number}</td>
-                        <td className="px-3 py-2.5">
-                          <div className="font-medium text-gray-900 dark:text-white">{o.customer_name ?? "—"}</div>
-                          {o.customer_email && <div className="text-xs text-gray-400">{o.customer_email}</div>}
+                        <td className="px-3 py-2.5 font-medium text-gray-900 dark:text-white">
+                          {o.order_number}
                         </td>
                         <td className="px-3 py-2.5">
-                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" style={{
-                            backgroundColor: `${ORDER_STATUS_COLORS[o.status] ?? "#6b7280"}1a`,
-                            color: ORDER_STATUS_COLORS[o.status] ?? "#6b7280",
-                          }}>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {o.customer_name ?? '—'}
+                          </div>
+                          {o.customer_email && (
+                            <div className="text-gray-400 text-xs">{o.customer_email}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span
+                            className="inline-flex items-center rounded-full px-2 py-0.5 font-medium text-xs"
+                            style={{
+                              backgroundColor: `${ORDER_STATUS_COLORS[o.status] ?? '#6b7280'}1a`,
+                              color: ORDER_STATUS_COLORS[o.status] ?? '#6b7280',
+                            }}
+                          >
                             {ORDER_STATUS_LABELS[o.status] ?? o.status}
                           </span>
                         </td>
@@ -345,5 +416,5 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

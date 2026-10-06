@@ -1,4 +1,3 @@
-import * as React from 'react'
 import {
   ChevronDown,
   ChevronLeft,
@@ -7,9 +6,12 @@ import {
   ChevronsRight,
   ChevronsUpDown,
   ChevronUp,
-  Search,
   Loader2,
+  Search,
 } from 'lucide-react'
+import * as React from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -18,8 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 export interface Column<T> {
@@ -28,6 +28,7 @@ export interface Column<T> {
   sortable?: boolean
   /** Server-side sort field when it differs from the row accessor `key`. */
   sortKey?: string
+  // biome-ignore lint/suspicious/noExplicitAny: generic table column renderer accepts any cell value
   render?: (value: any, row: T) => React.ReactNode
   className?: string
   headerClassName?: string
@@ -65,6 +66,7 @@ export interface DataTableProps<T> {
   emptyMessage?: string
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: generic table with many render branches
 export function DataTable<T>({
   data,
   columns,
@@ -84,6 +86,7 @@ export function DataTable<T>({
   selectable = false,
   selectedRows = new Set(),
   onRowSelect,
+  // biome-ignore lint/suspicious/noExplicitAny: generic default row id accessor for arbitrary row shapes
   getRowId = (row: any) => row.id,
   actions,
   className,
@@ -109,16 +112,15 @@ export function DataTable<T>({
     })
   }
 
-  const isAllSelected =
-    data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)))
+  const isAllSelected = data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)))
 
   return (
     <div className={cn('space-y-4', className)}>
       {/* Search Bar */}
       {searchable && (
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <Input
               type="text"
               placeholder={searchPlaceholder}
@@ -131,7 +133,7 @@ export function DataTable<T>({
       )}
 
       {/* Table */}
-      <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+      <div className="rounded-md border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
         <Table>
           <TableHeader>
             <TableRow>
@@ -141,7 +143,7 @@ export function DataTable<T>({
                     type="checkbox"
                     checked={isAllSelected}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
                   />
                 </TableHead>
               )}
@@ -149,10 +151,7 @@ export function DataTable<T>({
                 const columnSortKey = column.sortKey ?? column.key
                 const isSorted = activeSortKey === columnSortKey
                 return (
-                  <TableHead
-                    key={column.key}
-                    className={cn(column.headerClassName)}
-                  >
+                  <TableHead key={column.key} className={cn(column.headerClassName)}>
                     {column.sortable && onSortChange ? (
                       <button
                         type="button"
@@ -216,22 +215,23 @@ export function DataTable<T>({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((row, idx) => {
+              data.map((row) => {
                 const rowId = getRowId(row)
                 const isSelected = selectedRows.has(rowId)
                 return (
-                  <TableRow key={idx} data-state={isSelected ? 'selected' : undefined}>
+                  <TableRow key={rowId} data-state={isSelected ? 'selected' : undefined}>
                     {selectable && (
                       <TableCell>
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => onRowSelect?.(rowId)}
-                          className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
                         />
                       </TableCell>
                     )}
                     {columns.map((column) => {
+                      // biome-ignore lint/suspicious/noExplicitAny: dynamic cell lookup on generic row type
                       const value = (row as any)[column.key]
                       return (
                         <TableCell key={column.key} className={cn(column.className)}>
@@ -239,9 +239,7 @@ export function DataTable<T>({
                         </TableCell>
                       )
                     })}
-                    {actions && (
-                      <TableCell className="text-right">{actions(row)}</TableCell>
-                    )}
+                    {actions && <TableCell className="text-right">{actions(row)}</TableCell>}
                   </TableRow>
                 )
               })
@@ -253,17 +251,11 @@ export function DataTable<T>({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2">
-          <div className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+          <div className="flex-1 text-gray-700 text-sm dark:text-gray-300">
             {totalItems && (
               <span>
-                Showing{' '}
-                <span className="font-medium">
-                  {(currentPage - 1) * pageSize + 1}
-                </span>{' '}
-                to{' '}
-                <span className="font-medium">
-                  {Math.min(currentPage * pageSize, totalItems)}
-                </span>{' '}
+                Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * pageSize, totalItems)}</span>{' '}
                 of <span className="font-medium">{totalItems}</span> results
               </span>
             )}
@@ -285,7 +277,7 @@ export function DataTable<T>({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
+            <span className="px-2 text-gray-700 text-sm dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <Button

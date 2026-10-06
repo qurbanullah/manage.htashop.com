@@ -1,5 +1,8 @@
-import { authApi, type MessageResponse } from "@/api/auth";
+import { authApi, type MessageResponse } from '@/api/auth'
 
-export async function resendVerificationAction(email: string): Promise<MessageResponse> {
-  return authApi.resendVerificationEmail(email);
+export async function resendVerificationAction(
+  email: string,
+  turnstileToken?: string | null
+): Promise<MessageResponse> {
+  return authApi.resendVerificationEmail(email, turnstileToken)
 }

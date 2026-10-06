@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
-import ErrorBoundary from "@/components/shared/ErrorBoundary";
-import OfflineBanner from "@/components/shared/OfflineBanner";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { ToasterProvider } from "@/components/ui/Toaster";
-import { Footer } from "@/components/shared/Footer";
+import type { ReactNode } from 'react'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
+import { Footer } from '@/components/shared/Footer'
+import OfflineBanner from '@/components/shared/OfflineBanner'
+import { ToasterProvider } from '@/components/ui/Toaster'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 interface RootLayoutProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export function RootLayout({ children }: RootLayoutProps) {
@@ -16,13 +16,11 @@ export function RootLayout({ children }: RootLayoutProps) {
       <ThemeProvider>
         <ToasterProvider>
           <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
-            <div className="flex flex-1 flex-col">
-              {children}
-            </div>
+            <div className="flex flex-1 flex-col">{children}</div>
             <Footer />
           </div>
         </ToasterProvider>
       </ThemeProvider>
     </ErrorBoundary>
-  );
+  )
 }

@@ -1,26 +1,32 @@
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Modal } from '@/components/ui/modal'
 
-const DELETE_CONFIRMATION = "DELETE";
+const DELETE_CONFIRMATION = 'DELETE'
 
 interface Props {
-  isOpen: boolean;
-  productName: string;
-  onClose: () => void;
-  onConfirm: () => void;
-  isLoading?: boolean;
+  isOpen: boolean
+  productName: string
+  onClose: () => void
+  onConfirm: () => void
+  isLoading?: boolean
 }
 
-export function DeleteProductModal({ isOpen, productName, onClose, onConfirm, isLoading = false }: Props) {
-  const [confirmText, setConfirmText] = useState("");
+export function DeleteProductModal({
+  isOpen,
+  productName,
+  onClose,
+  onConfirm,
+  isLoading = false,
+}: Props) {
+  const [confirmText, setConfirmText] = useState('')
 
   useEffect(() => {
-    if (isOpen) setConfirmText("");
-  }, [isOpen]);
+    if (isOpen) setConfirmText('')
+  }, [isOpen])
 
   return (
     <Modal
@@ -38,22 +44,19 @@ export function DeleteProductModal({ isOpen, productName, onClose, onConfirm, is
             disabled={confirmText.trim() !== DELETE_CONFIRMATION || isLoading}
             onClick={onConfirm}
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Delete Product"
-            )}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete Product'}
           </Button>
         </div>
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          You are about to delete <strong className="text-gray-900 dark:text-white">{productName}</strong>.
-          This can be restored by an administrator.
+        <p className="text-gray-600 text-sm dark:text-gray-300">
+          You are about to delete{' '}
+          <strong className="text-gray-900 dark:text-white">{productName}</strong>. This can be
+          restored by an administrator.
         </p>
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
             Type <span className="font-mono font-semibold">DELETE</span> to confirm
           </Label>
           <Input
@@ -66,5 +69,5 @@ export function DeleteProductModal({ isOpen, productName, onClose, onConfirm, is
         </div>
       </div>
     </Modal>
-  );
+  )
 }

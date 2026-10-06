@@ -1,22 +1,22 @@
-import { lazy } from "react";
-import { Route } from "react-router-dom";
-import { paths } from "@/routes/paths";
-import { AppLayout } from "@/components/layouts/AppLayout";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { lazy } from 'react'
+import { Route } from 'react-router-dom'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { AppLayout } from '@/components/layouts/AppLayout'
+import { paths } from '@/routes/paths'
 
-const Dashboard = lazy(() => import("@/pages/dashboard/Dashboard"));
-const ProductsPage = lazy(() => import("@/pages/products/ProductsListPage"));
-const ProductDetailPage = lazy(() => import("@/pages/products/ProductDetailPage"));
-const WarehousesPage = lazy(() => import("@/pages/warehouses/WarehousesPage"));
-const ManufacturersPage = lazy(() => import("@/pages/manufacturers/ManufacturersPage"));
-const BrandsPage = lazy(() => import("@/pages/brands/BrandsPage"));
-const CouponListPage = lazy(() => import("@/pages/coupons/CouponListPage"));
-const CouponFormPage = lazy(() => import("@/pages/coupons/CouponFormPage"));
-const OrdersPage = lazy(() => import("@/pages/orders/OrdersPage"));
-const OrderDetailPage = lazy(() => import("@/pages/orders/OrderDetailPage"));
+const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'))
+const ProductsPage = lazy(() => import('@/pages/products/ProductsListPage'))
+const ProductDetailPage = lazy(() => import('@/pages/products/ProductDetailPage'))
+const WarehousesPage = lazy(() => import('@/pages/warehouses/WarehousesPage'))
+const ManufacturersPage = lazy(() => import('@/pages/manufacturers/ManufacturersPage'))
+const BrandsPage = lazy(() => import('@/pages/brands/BrandsPage'))
+const CouponListPage = lazy(() => import('@/pages/coupons/CouponListPage'))
+const CouponFormPage = lazy(() => import('@/pages/coupons/CouponFormPage'))
+const OrdersPage = lazy(() => import('@/pages/orders/OrdersPage'))
+const OrderDetailPage = lazy(() => import('@/pages/orders/OrderDetailPage'))
 const Settings = lazy(() =>
-  import("@/pages/setting/Settings").then((m) => ({ default: m.Settings })),
-);
+  import('@/pages/setting/Settings').then((m) => ({ default: m.Settings }))
+)
 
 export function PrivateRoutes() {
   return (
@@ -36,5 +36,5 @@ export function PrivateRoutes() {
         <Route path={paths.settings} element={<Settings />} />
       </Route>
     </Route>
-  );
+  )
 }

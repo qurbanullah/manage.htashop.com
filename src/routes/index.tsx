@@ -1,11 +1,11 @@
-import { Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { paths } from "@/routes/paths";
-import { AuthRoutes } from "@/routes/auth.routes";
-import { PrivateRoutes } from "@/routes/private.routes";
-import { PublicRoutes } from "@/routes/public.routes";
-import { RootLayout } from "@/components/layouts/RootLayout";
-import { PageSpinner } from "@/components/shared/PageSpinner";
+import { Suspense } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { RootLayout } from '@/components/layouts/RootLayout'
+import { PageSpinner } from '@/components/shared/PageSpinner'
+import { AuthRoutes } from '@/routes/auth.routes'
+import { paths } from '@/routes/paths'
+import { PrivateRoutes } from '@/routes/private.routes'
+import { PublicRoutes } from '@/routes/public.routes'
 
 export function AppRouter() {
   return (
@@ -19,5 +19,5 @@ export function AppRouter() {
         </Routes>
       </Suspense>
     </RootLayout>
-  );
+  )
 }

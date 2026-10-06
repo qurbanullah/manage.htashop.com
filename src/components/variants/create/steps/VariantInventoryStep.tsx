@@ -1,57 +1,58 @@
-import { useState, useRef, useEffect } from "react";
-import { Boxes, Search, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { warehousesApi, type Warehouse } from "@/api/warehouses";
+import { useQuery } from '@tanstack/react-query'
+import { Boxes, ChevronDown, Search } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { type Warehouse, warehousesApi } from '@/api/warehouses'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export interface InventoryFormData {
-  trackInventory: boolean;
-  quantity: string;
-  lowStockThreshold: string;
-  sku: string;
-  warehouseId: string;
+  trackInventory: boolean
+  quantity: string
+  lowStockThreshold: string
+  sku: string
+  warehouseId: string
 }
 
 interface Props {
-  data: InventoryFormData;
-  onChange: (data: InventoryFormData) => void;
-  defaultSku?: string;
+  data: InventoryFormData
+  onChange: (data: InventoryFormData) => void
+  defaultSku?: string
 }
 
 export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
-  const [warehouseOpen, setWarehouseOpen] = useState(false);
-  const [warehouseSearch, setWarehouseSearch] = useState("");
-  const warehouseRef = useRef<HTMLDivElement>(null);
+  const [warehouseOpen, setWarehouseOpen] = useState(false)
+  const [warehouseSearch, setWarehouseSearch] = useState('')
+  const warehouseRef = useRef<HTMLDivElement>(null)
 
   const { data: warehouses = [] } = useQuery({
-    queryKey: ["warehouses"],
+    queryKey: ['warehouses'],
     queryFn: () => warehousesApi.list(),
     staleTime: 10 * 60 * 1000,
-  });
+  })
 
-  const selectedWarehouse = warehouses.find((w) => String(w.id) === data.warehouseId);
+  const selectedWarehouse = warehouses.find((w) => String(w.id) === data.warehouseId)
 
   const filtered = warehouseSearch.trim()
-    ? warehouses.filter((w) =>
-        w.name.toLowerCase().includes(warehouseSearch.toLowerCase()) ||
-        w.code?.toLowerCase().includes(warehouseSearch.toLowerCase()),
+    ? warehouses.filter(
+        (w) =>
+          w.name.toLowerCase().includes(warehouseSearch.toLowerCase()) ||
+          w.code?.toLowerCase().includes(warehouseSearch.toLowerCase())
       )
-    : warehouses;
+    : warehouses
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (warehouseRef.current && !warehouseRef.current.contains(e.target as Node)) {
-        setWarehouseOpen(false);
-        setWarehouseSearch("");
+        setWarehouseOpen(false)
+        setWarehouseSearch('')
       }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const set = (key: keyof InventoryFormData, value: string | boolean) =>
-    onChange({ ...data, [key]: value });
+    onChange({ ...data, [key]: value })
 
   return (
     <div className="w-full space-y-5">
@@ -60,21 +61,25 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
           <Boxes className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Inventory</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Set stock quantity and tracking</p>
+          <h2 className="font-semibold text-gray-900 text-lg dark:text-white">Inventory</h2>
+          <p className="text-gray-500 text-sm dark:text-gray-400">
+            Set stock quantity and tracking
+          </p>
         </div>
       </div>
 
       {/* Track inventory toggle */}
       <label className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-700">
         <div>
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Track inventory</span>
-          <p className="text-xs text-gray-400">Manage stock levels for this variant</p>
+          <span className="font-medium text-gray-700 text-sm dark:text-gray-200">
+            Track inventory
+          </span>
+          <p className="text-gray-400 text-xs">Manage stock levels for this variant</p>
         </div>
         <input
           type="checkbox"
           checked={data.trackInventory}
-          onChange={(e) => set("trackInventory", e.target.checked)}
+          onChange={(e) => set('trackInventory', e.target.checked)}
           className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
         />
       </label>
@@ -83,7 +88,7 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Quantity */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
               Quantity on hand <span className="ml-1 text-red-500">*</span>
             </Label>
             <Input
@@ -91,7 +96,7 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
               min="0"
               step="1"
               value={data.quantity}
-              onChange={(e) => set("quantity", e.target.value)}
+              onChange={(e) => set('quantity', e.target.value)}
               placeholder="0"
               className="h-11"
             />
@@ -99,7 +104,7 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
 
           {/* Low stock threshold */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
               Low stock threshold <span className="font-normal text-gray-400">(optional)</span>
             </Label>
             <Input
@@ -107,7 +112,7 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
               min="0"
               step="1"
               value={data.lowStockThreshold}
-              onChange={(e) => set("lowStockThreshold", e.target.value)}
+              onChange={(e) => set('lowStockThreshold', e.target.value)}
               placeholder="e.g. 5"
               className="h-11"
             />
@@ -115,12 +120,12 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
 
           {/* SKU */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
               SKU <span className="ml-1 font-normal text-gray-400">(optional)</span>
             </Label>
             <Input
-              value={data.sku || defaultSku || ""}
-              onChange={(e) => set("sku", e.target.value)}
+              value={data.sku || defaultSku || ''}
+              onChange={(e) => set('sku', e.target.value)}
               placeholder="Auto-generated"
               className="h-11 font-mono"
             />
@@ -128,7 +133,7 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
 
           {/* Warehouse */}
           <div ref={warehouseRef} className="relative space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
               Warehouse <span className="font-normal text-gray-400">(optional)</span>
             </Label>
             <button
@@ -145,10 +150,10 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
             </button>
 
             {warehouseOpen && (
-              <div className="absolute left-0 top-full z-20 mt-1 max-h-56 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
-                <div className="border-b border-gray-100 p-2 dark:border-gray-700">
+              <div className="absolute top-full left-0 z-20 mt-1 max-h-56 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                <div className="border-gray-100 border-b p-2 dark:border-gray-700">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                    <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
                     <Input
                       value={warehouseSearch}
                       onChange={(e) => setWarehouseSearch(e.target.value)}
@@ -160,17 +165,20 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
                 </div>
                 <div className="max-h-40 overflow-y-auto">
                   {filtered.length === 0 ? (
-                    <div className="px-3 py-4 text-center text-xs text-gray-400">No warehouses</div>
+                    <div className="px-3 py-4 text-center text-gray-400 text-xs">No warehouses</div>
                   ) : (
                     filtered.map((w: Warehouse) => (
                       <button
                         key={w.id}
                         type="button"
-                        onClick={() => { set("warehouseId", String(w.id)); setWarehouseOpen(false); }}
-                        className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 ${String(w.id) === data.warehouseId ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}
+                        onClick={() => {
+                          set('warehouseId', String(w.id))
+                          setWarehouseOpen(false)
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 ${String(w.id) === data.warehouseId ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
                       >
                         <span className="text-gray-700 dark:text-gray-200">{w.name}</span>
-                        <span className="text-xs text-gray-400">{w.code}</span>
+                        <span className="text-gray-400 text-xs">{w.code}</span>
                       </button>
                     ))
                   )}
@@ -182,10 +190,10 @@ export function VariantInventoryStep({ data, onChange, defaultSku }: Props) {
       )}
 
       {!data.trackInventory && (
-        <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+        <p className="rounded-lg bg-gray-50 p-3 text-gray-400 text-xs dark:bg-gray-800">
           Inventory tracking is disabled. This variant won't track stock levels.
         </p>
       )}
     </div>
-  );
+  )
 }

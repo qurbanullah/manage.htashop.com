@@ -1,53 +1,62 @@
-import { useEffect, useRef, useState } from "react";
-import { Factory, Search, ChevronDown, Plus, Loader2 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { manufacturersApi } from "@/api/manufacturers";
-import { brandsApi } from "@/api/brands";
-import { ManufacturerModal } from "@/components/manufacturers/modals/ManufacturerModal";
-import { BrandModal } from "@/components/brands/modals/BrandModal";
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronDown, Factory, Loader2, Plus, Search } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { brandsApi } from '@/api/brands'
+import { manufacturersApi } from '@/api/manufacturers'
+import { BrandModal } from '@/components/brands/modals/BrandModal'
+import { ManufacturerModal } from '@/components/manufacturers/modals/ManufacturerModal'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface Props {
-  data: { manufacturerId: string; brandId: string };
-  onChange: (data: { manufacturerId: string; brandId: string }) => void;
+  data: { manufacturerId: string; brandId: string }
+  onChange: (data: { manufacturerId: string; brandId: string }) => void
 }
 
 interface ComboProps {
-  label: string;
-  placeholder: string;
-  items: Array<{ id: number; name: string }>;
-  value: string;
-  disabled?: boolean;
-  onChange: (id: string) => void;
-  onAddNew?: () => void;
-  addNewLabel?: string;
+  label: string
+  placeholder: string
+  items: Array<{ id: number; name: string }>
+  value: string
+  disabled?: boolean
+  onChange: (id: string) => void
+  onAddNew?: () => void
+  addNewLabel?: string
 }
 
-function Combo({ label, placeholder, items, value, disabled, onChange, onAddNew, addNewLabel }: ComboProps) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+function Combo({
+  label,
+  placeholder,
+  items,
+  value,
+  disabled,
+  onChange,
+  onAddNew,
+  addNewLabel,
+}: ComboProps) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
+        setOpen(false)
+        setSearch('')
       }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
-  const selected = items.find((i) => String(i.id) === value);
+  const selected = items.find((i) => String(i.id) === value)
   const filtered = search.trim()
     ? items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
-    : items;
+    : items
 
   return (
     <div ref={ref} className="relative space-y-1.5">
-      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</Label>
+      <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">{label}</Label>
       <button
         type="button"
         disabled={disabled}
@@ -63,10 +72,10 @@ function Combo({ label, placeholder, items, value, disabled, onChange, onAddNew,
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 max-h-64 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
-          <div className="border-b border-gray-100 p-2 dark:border-gray-700">
+        <div className="absolute top-full left-0 z-20 mt-1 max-h-64 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+          <div className="border-gray-100 border-b p-2 dark:border-gray-700">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -81,32 +90,32 @@ function Combo({ label, placeholder, items, value, disabled, onChange, onAddNew,
             <button
               type="button"
               onClick={() => {
-                setOpen(false);
-                setSearch("");
-                onAddNew();
+                setOpen(false)
+                setSearch('')
+                onAddNew()
               }}
-              className="flex w-full items-center gap-2 border-b border-dashed border-gray-100 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-gray-700 dark:text-blue-400 dark:hover:bg-blue-950/30"
+              className="flex w-full items-center gap-2 border-gray-100 border-b border-dashed px-3 py-2 font-medium text-blue-600 text-sm hover:bg-blue-50 dark:border-gray-700 dark:text-blue-400 dark:hover:bg-blue-950/30"
             >
               <Plus className="h-4 w-4" />
-              {addNewLabel ?? "Add new..."}
+              {addNewLabel ?? 'Add new...'}
             </button>
           )}
 
           <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-center text-xs text-gray-400">No results</div>
+              <div className="px-3 py-4 text-center text-gray-400 text-xs">No results</div>
             ) : (
               filtered.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => {
-                    onChange(String(item.id));
-                    setOpen(false);
-                    setSearch("");
+                    onChange(String(item.id))
+                    setOpen(false)
+                    setSearch('')
                   }}
                   className={`flex w-full items-center px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                    String(item.id) === value ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                    String(item.id) === value ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                 >
                   <span className="text-gray-700 dark:text-gray-200">{item.name}</span>
@@ -117,32 +126,32 @@ function Combo({ label, placeholder, items, value, disabled, onChange, onAddNew,
         </div>
       )}
     </div>
-  );
+  )
 }
 
 export function BrandManufacturerStep({ data, onChange }: Props) {
-  const queryClient = useQueryClient();
-  const [manufacturerModalOpen, setManufacturerModalOpen] = useState(false);
-  const [brandModalOpen, setBrandModalOpen] = useState(false);
+  const queryClient = useQueryClient()
+  const [manufacturerModalOpen, setManufacturerModalOpen] = useState(false)
+  const [brandModalOpen, setBrandModalOpen] = useState(false)
 
   const { data: manufacturers = [], isLoading: manufacturersLoading } = useQuery({
-    queryKey: ["manufacturers"],
+    queryKey: ['manufacturers'],
     queryFn: () => manufacturersApi.list(),
     staleTime: 10 * 60 * 1000,
-  });
+  })
 
-  const manufacturerId = data.manufacturerId ? Number(data.manufacturerId) : undefined;
+  const manufacturerId = data.manufacturerId ? Number(data.manufacturerId) : undefined
 
   const { data: brands = [] } = useQuery({
-    queryKey: ["brands", manufacturerId],
+    queryKey: ['brands', manufacturerId],
     queryFn: () => brandsApi.list(manufacturerId),
     enabled: !!manufacturerId,
-  });
+  })
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["manufacturers"] });
-    queryClient.invalidateQueries({ queryKey: ["brands"] });
-  };
+    queryClient.invalidateQueries({ queryKey: ['manufacturers'] })
+    queryClient.invalidateQueries({ queryKey: ['brands'] })
+  }
 
   return (
     <div className="space-y-5">
@@ -151,8 +160,10 @@ export function BrandManufacturerStep({ data, onChange }: Props) {
           <Factory className="h-5 w-5 text-sky-600 dark:text-sky-400" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Brand &amp; Manufacturer</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h2 className="font-semibold text-gray-900 text-lg dark:text-white">
+            Brand &amp; Manufacturer
+          </h2>
+          <p className="text-gray-500 text-sm dark:text-gray-400">
             Who makes this product and under which brand
           </p>
         </div>
@@ -169,7 +180,7 @@ export function BrandManufacturerStep({ data, onChange }: Props) {
             placeholder="Select manufacturer..."
             items={manufacturers}
             value={data.manufacturerId}
-            onChange={(id) => onChange({ manufacturerId: id, brandId: "" })}
+            onChange={(id) => onChange({ manufacturerId: id, brandId: '' })}
             onAddNew={() => setManufacturerModalOpen(true)}
             addNewLabel="Add new manufacturer..."
           />
@@ -200,5 +211,5 @@ export function BrandManufacturerStep({ data, onChange }: Props) {
         onSaved={refresh}
       />
     </div>
-  );
+  )
 }

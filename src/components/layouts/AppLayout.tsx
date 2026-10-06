@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
-import { TopBar } from "@/components/layouts/TopBar";
-import { Sidebar } from "@/components/layouts/Sidebar";
+import { useState } from 'react'
+import { Outlet } from 'react-router-dom'
+import { Sidebar } from '@/components/layouts/Sidebar'
+import { TopBar } from '@/components/layouts/TopBar'
 
 export function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="flex flex-1 flex-col bg-gray-50 dark:bg-gray-900">
@@ -21,5 +21,5 @@ export function AppLayout() {
         </main>
       </div>
     </div>
-  );
+  )
 }

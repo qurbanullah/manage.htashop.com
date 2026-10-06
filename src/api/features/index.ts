@@ -1,19 +1,19 @@
-import api from "@/api/client";
-import { authHeaders } from "@/lib/auth-header";
-import { parseApiResponse } from "@/lib/api-response";
+import api from '@/api/client'
+import { parseApiResponse } from '@/lib/api-response'
+import { authHeaders } from '@/lib/auth-header'
 
 export interface Feature {
-  id: number;
-  name: string;
-  slug: string;
+  id: number
+  name: string
+  slug: string
 }
 
 export const featuresApi = {
   async list(categoryId?: number): Promise<Feature[]> {
-    const params: Record<string, string> = {};
-    if (categoryId) params.category_id = String(categoryId);
-    const res = await api.get("features", { searchParams: params, headers: authHeaders() });
-    const body = await parseApiResponse<Feature[]>(res);
-    return (body.data as Feature[]) ?? [];
+    const params: Record<string, string> = {}
+    if (categoryId) params.category_id = String(categoryId)
+    const res = await api.get('features', { searchParams: params, headers: authHeaders() })
+    const body = await parseApiResponse<Feature[]>(res)
+    return (body.data as Feature[]) ?? []
   },
-};
+}

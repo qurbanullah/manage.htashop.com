@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Ban,
   CalendarClock,
@@ -15,13 +13,27 @@ import {
   TicketPercent,
   Trash2,
   X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { EmptyState } from "@/components/ui/empty-state";
-import { DataTable, type Column } from "@/components/ui/data-table";
-import { StatsCard } from "@/components/ui/stats-card";
-import { Modal } from "@/components/ui/modal";
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  COUPON_ACTIVE_FILTERS,
+  COUPON_TYPE_FILTERS,
+  type Coupon,
+  type CouponRedemption,
+  type CouponSortField,
+  type CouponSortOrder,
+  type CouponStatus,
+  type CouponType,
+  couponsApi,
+} from '@/api/coupons'
+import { Button } from '@/components/ui/button'
+import { type Column, DataTable } from '@/components/ui/data-table'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
+import { StatsCard } from '@/components/ui/stats-card'
+import { useToast } from '@/components/ui/Toaster'
 import {
   Table,
   TableBody,
@@ -29,203 +41,195 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { useToast } from "@/components/ui/Toaster";
-import { isApiError } from "@/lib/api-response";
-import { paths } from "@/routes/paths";
-import {
-  COUPON_ACTIVE_FILTERS,
-  COUPON_TYPE_FILTERS,
-  couponsApi,
-  type Coupon,
-  type CouponRedemption,
-  type CouponSortField,
-  type CouponSortOrder,
-  type CouponStatus,
-  type CouponType,
-} from "@/api/coupons";
+} from '@/components/ui/table'
+import { isApiError } from '@/lib/api-response'
+import { paths } from '@/routes/paths'
 
-const PER_PAGE = 15;
+const PER_PAGE = 15
 
 const STATUS_STYLES: Record<CouponStatus, string> = {
-  active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  inactive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
-  scheduled: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  expired: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  exhausted: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-};
+  active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  inactive: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+  scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  expired: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  exhausted: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+}
 
 function CouponStatusBadge({ status }: { status: CouponStatus }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status] ?? "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs capitalize ${STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}
     >
       {status}
     </span>
-  );
+  )
 }
 
 /** The scope is read-only context — the server already decided it for us. */
 function scopeLabel(coupon: Coupon): string {
-  if (coupon.scope === "organization") return "Your organization";
-  if (coupon.scope === "tenant") return "Your tenant";
-  return "Global";
+  if (coupon.scope === 'organization') return 'Your organization'
+  if (coupon.scope === 'tenant') return 'Your tenant'
+  return 'Global'
 }
 
 function formatDiscount(coupon: Coupon): string {
-  const amount = coupon.value.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  return coupon.type === "percent" ? `${amount}%` : amount;
+  const amount = coupon.value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return coupon.type === 'percent' ? `${amount}%` : amount
 }
 
 function formatDate(value: string | null): string {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: legacy list page
 export default function CouponListPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { success: showSuccess, error: showError } = useToast();
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { success: showSuccess, error: showError } = useToast()
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [type, setType] = useState("");
-  const [active, setActive] = useState("");
-  const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<CouponSortField>("created_at");
-  const [order, setOrder] = useState<CouponSortOrder>("desc");
-  const [redemptionsFor, setRedemptionsFor] = useState<Coupon | null>(null);
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [type, setType] = useState('')
+  const [active, setActive] = useState('')
+  const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<CouponSortField>('created_at')
+  const [order, setOrder] = useState<CouponSortOrder>('desc')
+  const [redemptionsFor, setRedemptionsFor] = useState<Coupon | null>(null)
 
   // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [search]);
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [search])
 
   const listQuery = useQuery({
-    queryKey: ["coupons", debouncedSearch, type, active, page, sort, order],
+    queryKey: ['coupons', debouncedSearch, type, active, page, sort, order],
     queryFn: () =>
       couponsApi.list({
         search: debouncedSearch || undefined,
         type: type ? (type as CouponType) : undefined,
-        is_active: active ? (active as "0" | "1") : undefined,
+        is_active: active ? (active as '0' | '1') : undefined,
         page,
         per_page: PER_PAGE,
         sort,
         order,
       }),
-  });
+  })
 
   const statsQuery = useQuery({
-    queryKey: ["coupons", "statistics"],
+    queryKey: ['coupons', 'statistics'],
     queryFn: () => couponsApi.statistics(),
-  });
+  })
 
-  const coupons = listQuery.data?.data ?? [];
-  const pagination = listQuery.data?.pagination;
-  const stats = statsQuery.data;
+  const coupons = listQuery.data?.data ?? []
+  const pagination = listQuery.data?.pagination
+  const stats = statsQuery.data
 
   // No active membership means no scope to manage codes in — the API says so
   // with a 403, which is a state, not a failure to retry.
-  const listError = listQuery.error;
-  const noScope = isApiError(listError) && listError.status === 403;
+  const listError = listQuery.error
+  const noScope = isApiError(listError) && listError.status === 403
 
-  const hasFilters = Boolean(debouncedSearch || type || active);
+  const hasFilters = Boolean(debouncedSearch || type || active)
 
   const clearFilters = () => {
-    setSearch("");
-    setDebouncedSearch("");
-    setType("");
-    setActive("");
-    setPage(1);
-  };
+    setSearch('')
+    setDebouncedSearch('')
+    setType('')
+    setActive('')
+    setPage(1)
+  }
 
   const handleSort = (key: string, nextOrder: CouponSortOrder) => {
-    setSort(key as CouponSortField);
-    setOrder(nextOrder);
-    setPage(1);
-  };
+    setSort(key as CouponSortField)
+    setOrder(nextOrder)
+    setPage(1)
+  }
 
   const handleDelete = async (coupon: Coupon) => {
-    if (!confirm(`Delete discount code "${coupon.code}"?`)) return;
+    if (!confirm(`Delete discount code "${coupon.code}"?`)) return
     try {
-      await couponsApi.remove(coupon.uuid);
-      showSuccess("Discount code deleted");
+      await couponsApi.remove(coupon.uuid)
+      showSuccess('Discount code deleted')
     } catch (e) {
       if (isApiError(e) && e.status === 404) {
-        showError("That discount code no longer exists");
+        showError('That discount code no longer exists')
       } else {
-        showError(isApiError(e) ? e.message : "Failed to delete discount code");
+        showError(isApiError(e) ? e.message : 'Failed to delete discount code')
       }
     } finally {
-      queryClient.invalidateQueries({ queryKey: ["coupons"] });
+      queryClient.invalidateQueries({ queryKey: ['coupons'] })
     }
-  };
+  }
 
   const columns: Column<Coupon>[] = useMemo(
     () => [
       {
-        key: "code",
-        label: "Code",
+        key: 'code',
+        label: 'Code',
         sortable: true,
         render: (_: unknown, row: Coupon) => (
           <div>
             <p className="font-mono font-semibold text-gray-900 dark:text-white">{row.code}</p>
-            {row.label && <p className="text-xs text-gray-400">{row.label}</p>}
+            {row.label && <p className="text-gray-400 text-xs">{row.label}</p>}
           </div>
         ),
       },
       {
-        key: "description",
-        label: "Description",
+        key: 'description',
+        label: 'Description',
         render: (_: unknown, row: Coupon) => (
           <div className="min-w-40">
             <p className="text-gray-900 dark:text-white">{row.description}</p>
-            <p className="text-xs text-gray-400">{row.type_label}</p>
+            <p className="text-gray-400 text-xs">{row.type_label}</p>
           </div>
         ),
       },
       {
-        key: "status",
-        label: "Status",
+        key: 'status',
+        label: 'Status',
         render: (_: unknown, row: Coupon) => <CouponStatusBadge status={row.status} />,
       },
       {
-        key: "scope",
-        label: "Scope",
+        key: 'scope',
+        label: 'Scope',
         render: (_: unknown, row: Coupon) => (
-          <span className="text-sm text-gray-600 dark:text-gray-300">{scopeLabel(row)}</span>
+          <span className="text-gray-600 text-sm dark:text-gray-300">{scopeLabel(row)}</span>
         ),
       },
       {
-        key: "usage",
-        label: "Usage",
+        key: 'usage',
+        label: 'Usage',
         sortable: true,
-        sortKey: "used_count",
+        sortKey: 'used_count',
         render: (_: unknown, row: Coupon) => (
           <div>
             <p className="text-gray-900 dark:text-white">
               {row.used_count}
-              <span className="text-gray-400"> / {row.usage_limit === null ? "∞" : row.usage_limit}</span>
+              <span className="text-gray-400">
+                {' '}
+                / {row.usage_limit === null ? '∞' : row.usage_limit}
+              </span>
             </p>
-            <p className="text-xs text-gray-400">
-              {row.usage_limit === null ? "Unlimited" : `${row.remaining ?? 0} left`}
+            <p className="text-gray-400 text-xs">
+              {row.usage_limit === null ? 'Unlimited' : `${row.remaining ?? 0} left`}
             </p>
           </div>
         ),
       },
       {
-        key: "window",
-        label: "Window",
+        key: 'window',
+        label: 'Window',
         sortable: true,
-        sortKey: "starts_at",
+        sortKey: 'starts_at',
         render: (_: unknown, row: Coupon) => (
           <div className="whitespace-nowrap text-xs">
             <p className="text-gray-600 dark:text-gray-300">{formatDate(row.starts_at)}</p>
@@ -234,24 +238,24 @@ export default function CouponListPage() {
         ),
       },
       {
-        key: "redemptions_count",
-        label: "Redeemed",
-        className: "text-center",
+        key: 'redemptions_count',
+        label: 'Redeemed',
+        className: 'text-center',
         render: (_: unknown, row: Coupon) => (
           <span className="text-gray-900 dark:text-white">{row.redemptions_count ?? 0}</span>
         ),
       },
     ],
-    [],
-  );
+    []
+  )
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Discount codes</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="font-bold text-2xl text-gray-900 dark:text-white">Discount codes</h1>
+          <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
             Create and manage the codes your store accepts at checkout
           </p>
         </div>
@@ -323,7 +327,7 @@ export default function CouponListPage() {
           {/* Search & filters */}
           <div className="flex flex-col gap-3 lg:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 autoComplete="off"
                 spellCheck={false}
@@ -337,10 +341,10 @@ export default function CouponListPage() {
             <select
               value={type}
               onChange={(e) => {
-                setType(e.target.value);
-                setPage(1);
+                setType(e.target.value)
+                setPage(1)
               }}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:w-48 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 lg:w-48 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
             >
               {COUPON_TYPE_FILTERS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -352,10 +356,10 @@ export default function CouponListPage() {
             <select
               value={active}
               onChange={(e) => {
-                setActive(e.target.value);
-                setPage(1);
+                setActive(e.target.value)
+                setPage(1)
               }}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:w-44 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 lg:w-44 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
             >
               {COUPON_ACTIVE_FILTERS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -365,7 +369,11 @@ export default function CouponListPage() {
             </select>
 
             {hasFilters && (
-              <Button variant="ghost" onClick={clearFilters} className="inline-flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-2"
+              >
                 <X className="h-4 w-4" />
                 Clear
               </Button>
@@ -377,16 +385,16 @@ export default function CouponListPage() {
             <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <EmptyState
                 icon={TicketPercent}
-                title={hasFilters ? "No codes match your filters" : "No discount codes yet"}
+                title={hasFilters ? 'No codes match your filters' : 'No discount codes yet'}
                 description={
                   hasFilters
-                    ? "Try adjusting or clearing your filters."
-                    : "Create your first code to offer a discount at checkout."
+                    ? 'Try adjusting or clearing your filters.'
+                    : 'Create your first code to offer a discount at checkout.'
                 }
                 action={
                   hasFilters
-                    ? { label: "Clear filters", onClick: clearFilters }
-                    : { label: "Add code", onClick: () => navigate(paths.couponCreate) }
+                    ? { label: 'Clear filters', onClick: clearFilters }
+                    : { label: 'Add code', onClick: () => navigate(paths.couponCreate) }
                 }
               />
             </div>
@@ -399,7 +407,7 @@ export default function CouponListPage() {
                 listError && !noScope
                   ? isApiError(listError)
                     ? listError.message
-                    : "Failed to load discount codes"
+                    : 'Failed to load discount codes'
                   : null
               }
               currentPage={pagination?.current_page ?? 1}
@@ -449,22 +457,23 @@ export default function CouponListPage() {
         <CouponRedemptionsModal coupon={redemptionsFor} onClose={() => setRedemptionsFor(null)} />
       )}
     </div>
-  );
+  )
 }
 
 /** Redemptions for a single code, loaded lazily while the modal is open. */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: legacy modal with lazy query
 function CouponRedemptionsModal({ coupon, onClose }: { coupon: Coupon; onClose: () => void }) {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1)
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["coupons", coupon.uuid, "redemptions", page],
+    queryKey: ['coupons', coupon.uuid, 'redemptions', page],
     queryFn: () => couponsApi.redemptions(coupon.uuid, { page, per_page: 10 }),
-  });
+  })
 
-  const redemptions: CouponRedemption[] = data?.data ?? [];
-  const pagination = data?.pagination;
-  const notFound = isApiError(error) && error.status === 404;
-  const lastPage = pagination?.last_page ?? 1;
+  const redemptions: CouponRedemption[] = data?.data ?? []
+  const pagination = data?.pagination
+  const notFound = isApiError(error) && error.status === 404
+  const lastPage = pagination?.last_page ?? 1
 
   return (
     <Modal
@@ -479,15 +488,15 @@ function CouponRedemptionsModal({ coupon, onClose }: { coupon: Coupon; onClose: 
           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </div>
       ) : notFound ? (
-        <p className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="py-10 text-center text-gray-500 text-sm dark:text-gray-400">
           This discount code is no longer available.
         </p>
       ) : isError ? (
-        <p className="py-10 text-center text-sm text-red-600 dark:text-red-400">
-          {isApiError(error) ? error.message : "Failed to load redemptions."}
+        <p className="py-10 text-center text-red-600 text-sm dark:text-red-400">
+          {isApiError(error) ? error.message : 'Failed to load redemptions.'}
         </p>
       ) : redemptions.length === 0 ? (
-        <p className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="py-10 text-center text-gray-500 text-sm dark:text-gray-400">
           This code hasn't been redeemed yet.
         </p>
       ) : (
@@ -508,18 +517,18 @@ function CouponRedemptionsModal({ coupon, onClose }: { coupon: Coupon; onClose: 
                     <span className="text-gray-500 dark:text-gray-400">Guest</span>
                   ) : (
                     <div>
-                      <p className="text-gray-900 dark:text-white">{redemption.user_name ?? "—"}</p>
+                      <p className="text-gray-900 dark:text-white">{redemption.user_name ?? '—'}</p>
                       {redemption.user_email && (
-                        <p className="text-xs text-gray-400">{redemption.user_email}</p>
+                        <p className="text-gray-400 text-xs">{redemption.user_email}</p>
                       )}
                     </div>
                   )}
                 </TableCell>
-                <TableCell>{redemption.order_number ?? "—"}</TableCell>
+                <TableCell>{redemption.order_number ?? '—'}</TableCell>
                 <TableCell>
-                  {redemption.currency} {redemption.amount.toLocaleString("en-US")}
+                  {redemption.currency} {redemption.amount.toLocaleString('en-US')}
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                <TableCell className="whitespace-nowrap text-gray-500 text-xs dark:text-gray-400">
                   {formatDate(redemption.created_at)}
                 </TableCell>
               </TableRow>
@@ -530,7 +539,7 @@ function CouponRedemptionsModal({ coupon, onClose }: { coupon: Coupon; onClose: 
 
       {lastPage > 1 && (
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-gray-500 text-sm dark:text-gray-400">
             Page {pagination?.current_page ?? 1} of {lastPage}
           </span>
           <div className="flex gap-2">
@@ -554,5 +563,5 @@ function CouponRedemptionsModal({ coupon, onClose }: { coupon: Coupon; onClose: 
         </div>
       )}
     </Modal>
-  );
+  )
 }
