@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import api from '@/lib/api'
+import { REGISTRATION_ENABLED } from '@/lib/features'
 
 const checkAccountSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -287,14 +288,16 @@ export default function CheckAccount() {
                     </>
                   ) : (
                     <>
-                      {/* Create Account */}
-                      <Link
-                        to="/register"
-                        className="group flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg dark:bg-emerald-600 dark:hover:bg-emerald-700"
-                      >
-                        <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
-                        Create New Account
-                      </Link>
+                      {/* Create Account — hidden while self-service sign-up is disabled (see @/lib/features). */}
+                      {REGISTRATION_ENABLED && (
+                        <Link
+                          to="/register"
+                          className="group flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                        >
+                          <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
+                          Create New Account
+                        </Link>
+                      )}
                       {/* Try Another Email */}
                       <button
                         type="button"

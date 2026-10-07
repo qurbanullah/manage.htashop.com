@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { Route } from 'react-router-dom'
 import { PublicRoute } from '@/components/auth/ProtectedRoute'
 import { AuthLayout } from '@/components/layouts/AuthLayout'
+import { REGISTRATION_ENABLED } from '@/lib/features'
 import { paths } from '@/routes/paths'
 
 const Login = lazy(() => import('@/pages/auth/Login'))
@@ -18,7 +19,8 @@ export function AuthRoutes() {
     <Route element={<PublicRoute />}>
       <Route element={<AuthLayout />}>
         <Route path={paths.login} element={<Login />} />
-        <Route path={paths.register} element={<Register />} />
+        {/* Self-service sign-up is off for now — see @/lib/features. */}
+        {REGISTRATION_ENABLED && <Route path={paths.register} element={<Register />} />}
         <Route path={paths.checkAccount} element={<CheckAccount />} />
         <Route path={paths.forgotPassword} element={<ForgotPassword />} />
         <Route path={paths.resetPassword} element={<ResetPassword />} />

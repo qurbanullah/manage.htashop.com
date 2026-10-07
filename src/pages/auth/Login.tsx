@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/auth/useAuth'
+import { REGISTRATION_ENABLED } from '@/lib/features'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -171,16 +172,18 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Register link */}
-      <p className="mt-6 text-center text-gray-500 text-sm dark:text-gray-400">
-        Don&apos;t have an account?{' '}
-        <Link
-          to="/register"
-          className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
-        >
-          Create one
-        </Link>
-      </p>
+      {/* Register link — hidden while self-service sign-up is disabled (see @/lib/features). */}
+      {REGISTRATION_ENABLED && (
+        <p className="mt-6 text-center text-gray-500 text-sm dark:text-gray-400">
+          Don&apos;t have an account?{' '}
+          <Link
+            to="/register"
+            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+          >
+            Create one
+          </Link>
+        </p>
+      )}
     </>
   )
 }
