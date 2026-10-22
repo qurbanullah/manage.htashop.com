@@ -24,6 +24,7 @@ export const paths = {
   coupons: '/coupons',
   couponCreate: '/coupons/new',
   couponDetail: '/coupons/:uuid',
+  punchoutBuyers: '/punchout/buyers',
   orders: '/orders',
   orderDetail: '/orders/:uuid',
   settings: '/settings',

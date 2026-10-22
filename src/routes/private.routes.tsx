@@ -12,6 +12,7 @@ const ManufacturersPage = lazy(() => import('@/pages/manufacturers/Manufacturers
 const BrandsPage = lazy(() => import('@/pages/brands/BrandsPage'))
 const CouponListPage = lazy(() => import('@/pages/coupons/CouponListPage'))
 const CouponFormPage = lazy(() => import('@/pages/coupons/CouponFormPage'))
+const PunchoutBuyersPage = lazy(() => import('@/pages/punchout/PunchoutBuyersPage'))
 const OrdersPage = lazy(() => import('@/pages/orders/OrdersPage'))
 const OrderDetailPage = lazy(() => import('@/pages/orders/OrderDetailPage'))
 const Settings = lazy(() =>
@@ -31,6 +32,7 @@ export function PrivateRoutes() {
         <Route path={paths.coupons} element={<CouponListPage />} />
         <Route path={paths.couponCreate} element={<CouponFormPage />} />
         <Route path={paths.couponDetail} element={<CouponFormPage />} />
+        <Route path={paths.punchoutBuyers} element={<PunchoutBuyersPage />} />
         <Route path={paths.orders} element={<OrdersPage />} />
         <Route path={`${paths.orders}/:uuid`} element={<OrderDetailPage />} />
         <Route path={paths.settings} element={<Settings />} />
