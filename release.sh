@@ -65,7 +65,7 @@ if [ "$DEPLOY" -eq 1 ] && [ "$DO_PUSH" -eq 0 ]; then
     die "--deploy and --no-push contradict each other (--deploy pushes to $BRANCH)"
 fi
 
-cd "$(dirname -- "${BASH_SOURCE[0]:-$0}")"
+cd "$(dirname -- "${BASH_SOURCE[0]:-$0}")" || die "cannot enter the application directory"
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not a git repository"
 
@@ -108,6 +108,14 @@ if [ "$RUN_CHECKS" -eq 1 ]; then
     fi
 
     FILES="$(changed_files)"
+
+    step "Deploy scripts"
+    bash -n deploy.sh release.sh || die "a deploy script has a syntax error"
+    if command -v shellcheck >/dev/null 2>&1; then
+        shellcheck deploy.sh release.sh || die "shellcheck reported a problem"
+    else
+        info "shellcheck not installed; syntax check only"
+    fi
 
     step "Lint (files in this release)"
     if [ -z "$FILES" ]; then

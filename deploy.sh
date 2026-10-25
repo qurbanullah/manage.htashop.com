@@ -12,6 +12,14 @@
 # typesense, haproxy) is deployed separately — see deploy/ — and this only moves one
 # service.
 #
+# nginx.conf is also registered as the Docker config `manage_nginx_conf`. Configs
+# are immutable, so editing nginx.conf does not change a running stack; the script
+# compares the two and warns when they differ.
+#
+# VITE_* values are compiled from .env.production during `docker build`. That file
+# is gitignored and must exist on the manager; `--no-build` will not pick up a
+# change to it.
+#
 #   ./deploy.sh --no-build      roll the existing image (already built)
 #   ./deploy.sh --no-smoke      skip the post-rollout check
 #   ./deploy.sh --help
@@ -32,6 +40,7 @@ SERVICE_NAME="${SERVICE_NAME:-manage}"
 
 SWARM_SERVICE_NAME="${STACK_NAME}_${SERVICE_NAME}"
 IMAGE_NAME="${STACK_NAME}-${SERVICE_NAME}:latest"
+NGINX_CONFIG_NAME="${SERVICE_NAME}_nginx_conf"
 
 DO_BUILD=1
 DO_SMOKE=1
@@ -40,6 +49,18 @@ step()  { printf '\n\033[1;34m==>\033[0m \033[1m%s\033[0m\n' "$1"; }
 info()  { printf '    %s\n' "$1"; }
 warn()  { printf '\033[1;33mwarning:\033[0m %s\n' "$1" >&2; }
 die()   { printf '\033[1;31merror:\033[0m %s\n' "$1" >&2; exit 1; }
+
+# set -e aborts without a message when a command substitution or a guard fails.
+# That is indistinguishable from a hang or a Ctrl-C, so report the line. The
+# trap captures $LINENO/$BASH_COMMAND/$? itself, before calling the function,
+# so the reported line is the failing command's line rather than the helper's.
+report_error() {
+    local line="$1" command="$2" status="$3"
+    printf "\033[1;31merror:\033[0m %s failed at line %s (exit %s)\n    %s\n" \
+        "${0##*/}" "$line" "$status" "$command" >&2
+    exit "$status"
+}
+trap 'report_error "$LINENO" "$BASH_COMMAND" "$?"' ERR
 
 usage() {
     cat <<'USAGE'
@@ -85,6 +106,11 @@ step "Checking the environment"
 cd "$APP_DIR" || die "cannot enter $APP_DIR"
 [ -f Dockerfile ]  || die "$APP_DIR has no Dockerfile, so it is not the build context"
 [ -f package.json ] || die "$APP_DIR does not look like the application (no package.json)"
+[ -f nginx.conf ]  || die "$APP_DIR has no nginx.conf, so the stack config cannot be compared"
+# .env.production is gitignored (it holds the API URL), so it must be provisioned
+# on the manager; the Dockerfile fails the build when it is missing.
+[ -f .env.production ] || die "$APP_DIR has no .env.production.
+  It is gitignored and must exist on the manager before the image can be built."
 
 command -v git >/dev/null 2>&1 || die "git not found"
 command -v docker >/dev/null 2>&1 || die "docker not found"
@@ -132,8 +158,56 @@ else
     info "now at $(git log -1 --format='%h %s')"
 fi
 
-if [ -n "$(git status --porcelain)" ]; then
+DIRTY="$(git status --porcelain)" || DIRTY=""
+if [ -n "$DIRTY" ]; then
     warn "the checkout has uncommitted changes; the image will not match what was pushed"
+    printf '%s\n' "$DIRTY" | sed 's/^/    /' >&2
+fi
+
+# ---------------------------------------------------------------------------
+# Nginx config drift
+#
+# manage_nginx_conf is a Docker *config* and therefore immutable. Rolling the
+# service does not apply an edited nginx.conf: the task mounts the config that
+# was registered when the stack was deployed. Say so loudly rather than letting
+# a security-header change look deployed when it is not.
+# ---------------------------------------------------------------------------
+
+step "Comparing the nginx config"
+
+# Advisory only, so no failure in here may abort the build: the hashes decide
+# whether to warn, nothing else. Every step tolerates failure explicitly.
+CONFIG_FOUND=0
+LOCAL_HASH="$(sha256sum nginx.conf 2>/dev/null | awk '{print $1}')" || LOCAL_HASH=""
+
+if [ -z "$LOCAL_HASH" ]; then
+    warn "could not hash nginx.conf; skipping the config comparison"
+else
+    for config_name in "${STACK_NAME}_${NGINX_CONFIG_NAME}" "$NGINX_CONFIG_NAME"; do
+        docker config inspect "$config_name" >/dev/null 2>&1 || continue
+
+        CONFIG_FOUND=1
+        DEPLOYED_HASH="$(docker config inspect "$config_name" \
+            --format '{{.Spec.Data}}' 2>/dev/null \
+            | base64 -d 2>/dev/null \
+            | sha256sum 2>/dev/null \
+            | awk '{print $1}')" || DEPLOYED_HASH=""
+
+        if [ -z "$DEPLOYED_HASH" ]; then
+            warn "$config_name exists but its contents could not be read; cannot compare nginx.conf"
+        elif [ "$LOCAL_HASH" = "$DEPLOYED_HASH" ]; then
+            info "$config_name matches nginx.conf"
+        else
+            warn "nginx.conf differs from the registered config '$config_name'"
+            warn "Docker configs are immutable, so this rollout keeps the old nginx config."
+            warn "Register a new config (deploy/scripts/create-configs.sh with a new name)"
+            warn "and redeploy the stack, or scale the service to zero first."
+        fi
+    done
+fi
+
+if [ "$CONFIG_FOUND" -eq 0 ]; then
+    warn "no config named '$NGINX_CONFIG_NAME' or '${STACK_NAME}_${NGINX_CONFIG_NAME}'; the stack may not be deployed yet"
 fi
 
 # ---------------------------------------------------------------------------
@@ -154,6 +228,7 @@ if [ "$DO_BUILD" -eq 1 ]; then
     info "built $BUILD_TAG"
 else
     step "Skipping the build"
+    warn "rolling $IMAGE_NAME; changes to source or .env.production are NOT included"
     info "rolling $IMAGE_NAME, whatever it currently points at"
 fi
 
