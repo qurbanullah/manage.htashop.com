@@ -45,6 +45,7 @@ export interface ProductData {
     manufacturer_id?: number | null
   }>
   variants?: Array<{ id: number; uuid: string; name: string; sku?: string | null }>
+  channels?: string[]
   metadata?: Record<string, unknown>
   created_at: string
   updated_at: string
@@ -67,6 +68,7 @@ export interface CreateProductPayload {
   features?: string[]
   manufacturer_ids?: number[]
   brand_ids?: number[]
+  channel_codes?: string[]
   is_active?: boolean
   status?: string
   metadata?: Record<string, unknown>

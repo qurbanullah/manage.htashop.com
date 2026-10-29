@@ -5,6 +5,7 @@ import {
   DollarSign,
   Factory,
   FolderTree,
+  Globe2,
   ImagePlus,
   ListChecks,
   Package,
@@ -27,6 +28,7 @@ import {
   InventoryStep,
 } from '@/components/products/create/steps/ProductInventoryStep'
 import { PricingStep } from '@/components/products/create/steps/ProductPricingStep'
+import { ProductSalesChannelsStep } from '@/components/products/create/steps/ProductSalesChannelsStep'
 import { SpecificationsStep } from '@/components/products/create/steps/ProductSpecificationsStep'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
@@ -54,6 +56,7 @@ interface ProductData {
   modelNumber: string
   manufacturerId: string
   brandId: string
+  channelCodes: string[]
   summary: string
   description: string
   featured: UploadResult | null
@@ -82,6 +85,7 @@ const INITIAL: ProductData = {
   modelNumber: '',
   manufacturerId: '',
   brandId: '',
+  channelCodes: ['storefront'],
   summary: '',
   description: '',
   featured: null,
@@ -107,6 +111,7 @@ const INITIAL: ProductData = {
 const STEPS = [
   { key: 'basic', label: 'Basic Info', icon: Package },
   { key: 'categories', label: 'Categories', icon: FolderTree },
+  { key: 'channels', label: 'Sales Channels', icon: Globe2 },
   { key: 'brand-manufacturer', label: 'Brand & Manufacturer', icon: Factory },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
   { key: 'images', label: 'Images', icon: ImagePlus },
@@ -131,6 +136,7 @@ interface Props {
   onCreated?: () => void
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-step creation wizard with step gating and uploads
 export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const [step, setStep] = useState(0)
@@ -161,18 +167,14 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
     }
   }, [data.name, data.slug])
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: step completeness check is inherently branchy
   const isStepComplete = (i: number) => {
     if (i === 0) return data.name.trim().length > 0 // Basic Info
     if (i === 1) return data.categoryIds.length > 0 // Categories
-    if (i === 2) return true // Brand & Manufacturer (optional)
-    if (i === 3) return data.price.trim().length > 0 && Number(data.price) > 0 // Pricing
-    if (i === 4) return data.featured !== null // Images
-    if (i === 5) return true // Features (optional)
-    if (i === 6) return true // Specs (optional)
-    if (i === 7) return true // Inventory (optional)
-    if (i === 8) return true // Highlights (optional)
-    return false
+    if (i === 2) return data.channelCodes.length > 0 // Sales Channels
+    if (i === 3) return true // Brand & Manufacturer (optional)
+    if (i === 4) return data.price.trim().length > 0 && Number(data.price) > 0 // Pricing
+    if (i === 5) return data.featured !== null // Images
+    return true // features, specs, inventory, highlights are optional
   }
 
   // A step is navigable only if all previous required steps are complete
@@ -212,6 +214,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
         category_ids: data.categoryIds.length > 0 ? data.categoryIds : undefined,
         manufacturer_ids: data.manufacturerId ? [Number(data.manufacturerId)] : undefined,
         brand_ids: data.brandId ? [Number(data.brandId)] : undefined,
+        channel_codes: data.channelCodes,
         features: data.featureNames.length > 0 ? data.featureNames : undefined,
         metadata: {
           specs: data.specs.map((s) => ({
@@ -398,44 +401,50 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
               />
             )}
             {step === 2 && (
+              <ProductSalesChannelsStep
+                data={{ channelCodes: data.channelCodes }}
+                onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
+              />
+            )}
+            {step === 3 && (
               <BrandManufacturerStep
                 data={{ manufacturerId: data.manufacturerId, brandId: data.brandId }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 3 && (
+            {step === 4 && (
               <PricingStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 4 && (
+            {step === 5 && (
               <ProductImagesStep
                 data={{ featured: data.featured, gallery: data.gallery }}
                 onChange={(images) => setData((prev) => ({ ...prev, ...images }))}
                 uploadPrefix={uploadPrefix}
               />
             )}
-            {step === 5 && (
+            {step === 6 && (
               <FeaturesStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 6 && (
+            {step === 7 && (
               <SpecificationsStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 7 && (
+            {step === 8 && (
               <InventoryStep
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
               />
             )}
-            {step === 8 && (
+            {step === 9 && (
               <ProductHighlightsStep
                 data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}

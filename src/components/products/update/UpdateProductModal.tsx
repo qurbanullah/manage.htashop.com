@@ -6,6 +6,7 @@ import {
   DollarSign,
   Factory,
   FolderTree,
+  Globe2,
   ListChecks,
   Package,
   Ruler,
@@ -25,6 +26,7 @@ import {
   InventoryStep,
 } from '@/components/products/create/steps/ProductInventoryStep'
 import { PricingStep } from '@/components/products/create/steps/ProductPricingStep'
+import { ProductSalesChannelsStep } from '@/components/products/create/steps/ProductSalesChannelsStep'
 import { SpecificationsStep } from '@/components/products/create/steps/ProductSpecificationsStep'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
@@ -51,6 +53,7 @@ interface EditProductData {
   modelNumber: string
   manufacturerId: string
   brandId: string
+  channelCodes: string[]
   summary: string
   description: string
   categoryIds: number[]
@@ -68,6 +71,7 @@ interface EditProductData {
 const STEPS = [
   { key: 'basic', label: 'Basic Info', icon: Package },
   { key: 'categories', label: 'Categories', icon: FolderTree },
+  { key: 'channels', label: 'Sales Channels', icon: Globe2 },
   { key: 'brand-manufacturer', label: 'Brand & Manufacturer', icon: Factory },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
   { key: 'features', label: 'Features', icon: ListChecks },
@@ -104,6 +108,8 @@ function buildInitialData(product: ProductData): EditProductData {
     modelNumber: product.model_number ?? '',
     manufacturerId: firstManufacturer?.id != null ? String(firstManufacturer.id) : '',
     brandId: firstBrand?.id != null ? String(firstBrand.id) : '',
+    channelCodes:
+      product.channels && product.channels.length > 0 ? product.channels : ['storefront'],
     summary: product.summary ?? '',
     description: product.description ?? '',
     categoryIds: (product.categories ?? []).map((c) => c.id),
@@ -204,8 +210,9 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
   const isStepComplete = (i: number) => {
     if (i === 0) return data.name.trim().length > 0
     if (i === 1) return data.categoryIds.length > 0
-    if (i === 2) return true // Brand & Manufacturer (optional)
-    if (i === 3) return data.price.trim().length > 0 && Number(data.price) > 0
+    if (i === 2) return data.channelCodes.length > 0
+    if (i === 3) return true // Brand & Manufacturer (optional)
+    if (i === 4) return data.price.trim().length > 0 && Number(data.price) > 0
     return true // features, specs, inventory, highlights are optional
   }
 
@@ -236,6 +243,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
         category_ids: data.categoryIds.length > 0 ? data.categoryIds : undefined,
         manufacturer_ids: data.manufacturerId ? [Number(data.manufacturerId)] : undefined,
         brand_ids: data.brandId ? [Number(data.brandId)] : undefined,
+        channel_codes: data.channelCodes,
         features: data.featureNames.length > 0 ? data.featureNames : undefined,
         metadata: {
           specs: data.specs.map((s) => ({
@@ -371,37 +379,43 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
               />
             )}
             {step === 2 && (
+              <ProductSalesChannelsStep
+                data={{ channelCodes: data.channelCodes }}
+                onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
+              />
+            )}
+            {step === 3 && (
               <BrandManufacturerStep
                 data={{ manufacturerId: data.manufacturerId, brandId: data.brandId }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 3 && (
+            {step === 4 && (
               <PricingStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 4 && (
+            {step === 5 && (
               <FeaturesStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 5 && (
+            {step === 6 && (
               <SpecificationsStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 6 && (
+            {step === 7 && (
               <InventoryStep
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
               />
             )}
-            {step === 7 && (
+            {step === 8 && (
               <ProductHighlightsStep
                 data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}

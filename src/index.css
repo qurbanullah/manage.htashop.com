@@ -2,6 +2,45 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* ────────────────────────────────────────────────────────────────────────
+   Brand colour.
+
+   sky-500 is the HTAShop brand colour. The whole `blue` palette and the focus
+   ring derive from `--brand`, so overriding it (VITE_BRAND_COLOR at build
+   time, or a tenant setting later) rebrands every button, link, ring and
+   border at once without touching components.
+
+   Unlayered `:root` wins over Tailwind's layered defaults, so these values
+   replace the built-in palette.
+   ──────────────────────────────────────────────────────────────────────── */
+:root {
+    --brand: #0ea5e9;
+    --brand-ink: #0f172a;
+    --brand-hover: color-mix(in oklab, var(--brand) 85%, white);
+    --brand-strong: color-mix(in oklab, var(--brand) 62%, black);
+    --brand-soft: color-mix(in oklab, var(--brand) 8%, white);
+    --brand-ring: color-mix(in oklab, var(--brand) 30%, white);
+
+    --color-blue-50: color-mix(in oklab, var(--brand) 6%, white);
+    --color-blue-100: color-mix(in oklab, var(--brand) 12%, white);
+    --color-blue-200: color-mix(in oklab, var(--brand) 28%, white);
+    --color-blue-300: color-mix(in oklab, var(--brand) 50%, white);
+    --color-blue-400: color-mix(in oklab, var(--brand) 72%, white);
+    --color-blue-500: var(--brand);
+    --color-blue-600: var(--brand);
+    --color-blue-700: var(--brand-strong);
+    --color-blue-800: color-mix(in oklab, var(--brand) 52%, black);
+    --color-blue-900: color-mix(in oklab, var(--brand) 42%, black);
+    --color-blue-950: color-mix(in oklab, var(--brand) 30%, black);
+}
+
+/* Sky-500 is a fill colour: as small text on white it lands at ~2.8:1, below
+   AA. Pure text keeps the darker brand shade; filled surfaces (bg-blue-600)
+   stay exactly on the brand. Unlayered, so it wins over the utility layer. */
+.text-blue-600 {
+    color: var(--brand-strong);
+}
+
 html {
     color-scheme: light;
 }
@@ -31,7 +70,7 @@ html {
 }
 
 :focus-visible {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--brand);
     outline-offset: 2px;
 }
 

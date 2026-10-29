@@ -79,8 +79,8 @@ class ErrorBoundary extends Component<Props, State> {
               style={{
                 marginTop: '1rem',
                 padding: '0.5rem 1rem',
-                background: '#3b82f6',
-                color: 'white',
+                background: 'var(--brand)',
+                color: 'var(--brand-ink)',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',

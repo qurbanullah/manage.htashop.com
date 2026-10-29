@@ -5,8 +5,13 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import './i18n/config' // Initialize i18n
+import { applyBrandColor } from './lib/brand'
 import { validateEnvironment } from './lib/env' // Environment validation
 import { useAuthStore } from './stores/auth' // Initialize auth store
+
+// Brand colour: sky-500 unless VITE_BRAND_COLOR supplies another hex. The whole
+// blue palette and the focus ring derive from --brand (see index.css).
+applyBrandColor(import.meta.env.VITE_BRAND_COLOR ?? null)
 
 // Initialize Sentry error monitoring (if configured)
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined
