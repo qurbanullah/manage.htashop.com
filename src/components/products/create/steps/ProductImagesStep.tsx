@@ -9,16 +9,15 @@ import {
   X,
 } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
-import { storageApi } from '@/api/storage'
 import { useToast } from '@/components/ui/Toaster'
 import type { UploadResult } from '@/hooks/storage/useS3Upload'
-import { generateImageVariants } from '@/utils/image-resize'
-
-const ACCEPT = '.jpg,.jpeg,.png,.webp'
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_SIZE = 10 * 1024 * 1024
-const MAX_GALLERY = 8
-const CDN_BASE = 'https://cdn.htashop.com'
+import {
+  PRODUCT_IMAGE_ACCEPT as ACCEPT,
+  PRODUCT_IMAGE_CDN_BASE as CDN_BASE,
+  PRODUCT_IMAGE_MAX_GALLERY as MAX_GALLERY,
+  uploadProductImage,
+  validateProductImage,
+} from '@/utils/product-image-upload'
 
 // ── Types ──
 
@@ -41,57 +40,6 @@ interface Props {
   uploadPrefix: string
 }
 
-// ── Shared upload helper ──
-
-async function uploadToS3(file: File, key: string): Promise<UploadResult> {
-  // key = "products/{uuid}/images/featured.jpg"
-  const lastSlash = key.lastIndexOf('/')
-  const directory = key.slice(0, lastSlash)
-  const baseFilename = key.slice(lastSlash + 1).replace(/\.[^.]+$/, '')
-  const ext = key.split('.').pop() || 'jpg'
-
-  // Generate resized variants client-side (original + large/medium/small/thumb)
-  const variants = await generateImageVariants(file)
-
-  const uploadedVariants: Record<string, string> = {}
-  let originalKey = ''
-
-  for (const [suffix, blob] of Object.entries(variants)) {
-    const filename =
-      suffix === 'original' ? `${baseFilename}.${ext}` : `${baseFilename}-${suffix}.jpg`
-
-    const presigned = await storageApi.getPresignedUrl(filename, 'image/jpeg', directory, blob.size)
-    if (!presigned.success || !presigned.data?.url) throw new Error('Failed to get upload URL')
-
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      xhr.open('PUT', presigned.data?.url, true)
-      xhr.setRequestHeader('Content-Type', 'image/jpeg')
-      xhr.onload = () =>
-        xhr.status >= 200 && xhr.status < 300
-          ? resolve()
-          : reject(new Error(`Upload failed: ${xhr.status}`))
-      xhr.onerror = () => reject(new Error('Network error'))
-      xhr.send(blob)
-    })
-
-    uploadedVariants[suffix] = presigned.data.key
-    if (suffix === 'original') originalKey = presigned.data.key
-  }
-
-  return {
-    key: originalKey,
-    original_filename: file.name,
-    metadata: {
-      size: file.size,
-      content_type: file.type,
-      last_modified: new Date().toISOString(),
-      etag: '',
-    },
-    variants: uploadedVariants,
-  }
-}
-
 // ── Main component ──
 
 export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
@@ -106,19 +54,13 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
   const [featuredPreview, setFeaturedPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState<Record<string, UploadingEntry>>({})
 
-  const validate = useCallback((file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) return 'JPEG, PNG, or WebP only'
-    if (file.size > MAX_SIZE) return 'Max 10MB per image'
-    return null
-  }, [])
-
   const createPreview = useCallback((file: File) => URL.createObjectURL(file), [])
 
   // ── Featured ──
 
   const handleFeaturedFile = useCallback(
     async (file: File) => {
-      const err = validate(file)
+      const err = validateProductImage(file)
       if (err) return showError(err)
 
       if (featuredPreview) URL.revokeObjectURL(featuredPreview)
@@ -132,7 +74,7 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
 
       try {
         const key = `${uploadPrefix}/images/featured.${file.name.split('.').pop()}`
-        const result = await uploadToS3(file, key)
+        const result = await uploadProductImage(file, key)
         onChange({ ...dataRef.current, featured: result })
       } catch (e) {
         showError(e instanceof Error ? e.message : 'Upload failed')
@@ -143,7 +85,7 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
         })
       }
     },
-    [onChange, uploadPrefix, featuredPreview, showError, validate, createPreview]
+    [onChange, uploadPrefix, featuredPreview, showError, createPreview]
   )
 
   const removeFeatured = () => {
@@ -166,7 +108,7 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
       try {
         const ext = file.name.split('.').pop()
         const key = `${uploadPrefix}/images/gallery-${Date.now()}-${idx}.${ext}`
-        const result = await uploadToS3(file, key)
+        const result = await uploadProductImage(file, key)
         onChange({ ...dataRef.current, gallery: [...dataRef.current.gallery, result] })
       } catch (e) {
         showError(e instanceof Error ? e.message : 'Upload failed')
@@ -184,7 +126,7 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
     (files: FileList | File[]) => {
       const fileArr = Array.from(files)
       const valid = fileArr.filter((f) => {
-        const err = validate(f)
+        const err = validateProductImage(f)
         if (err) showError(err)
         return !err
       })
@@ -198,7 +140,7 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
         uploadGalleryFile(f, i)
       })
     },
-    [uploadGalleryFile, showError, validate]
+    [uploadGalleryFile, showError]
   )
 
   const handleGalleryDrop = (e: React.DragEvent) => {

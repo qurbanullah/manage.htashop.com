@@ -9,6 +9,7 @@ export interface IngestPayload {
   object_key: string
   mime_type: string
   collection_name?: string
+  sort_order?: number | null
   bucket?: string
   metadata?: Record<string, unknown>
 }
@@ -34,6 +35,12 @@ export interface DamAsset {
   updated_at: string
 }
 
+export interface UpdateAssetPayload {
+  collection_name?: string
+  collection_keys?: string[]
+  sort_order?: number | null
+}
+
 export const damApi = {
   async ingest(payload: IngestPayload) {
     const res = await api.post('dam/ingest', {
@@ -52,6 +59,15 @@ export const damApi = {
         ...(collectionName ? { collection_name: collectionName } : {}),
       },
       headers: authHeaders(),
+    })
+    return parseApiResponse(res)
+  },
+
+  async update(id: number, payload: UpdateAssetPayload) {
+    const res = await api.put(`dam/${id}`, {
+      json: payload,
+      headers: authHeaders(),
+      throwHttpErrors: false,
     })
     return parseApiResponse(res)
   },

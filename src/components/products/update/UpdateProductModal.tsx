@@ -7,6 +7,7 @@ import {
   Factory,
   FolderTree,
   Globe2,
+  ImagePlus,
   ListChecks,
   Package,
   Ruler,
@@ -28,6 +29,7 @@ import {
 import { PricingStep } from '@/components/products/create/steps/ProductPricingStep'
 import { ProductSalesChannelsStep } from '@/components/products/create/steps/ProductSalesChannelsStep'
 import { SpecificationsStep } from '@/components/products/create/steps/ProductSpecificationsStep'
+import { ProductImagesStep } from '@/components/products/update/steps/ProductImagesStep'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/Toaster'
@@ -74,6 +76,7 @@ const STEPS = [
   { key: 'channels', label: 'Sales Channels', icon: Globe2 },
   { key: 'brand-manufacturer', label: 'Brand & Manufacturer', icon: Factory },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
+  { key: 'images', label: 'Images', icon: ImagePlus },
   { key: 'features', label: 'Features', icon: ListChecks },
   { key: 'specs', label: 'Specifications', icon: Ruler },
   { key: 'inventory', label: 'Inventory', icon: Boxes },
@@ -213,7 +216,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     if (i === 2) return data.channelCodes.length > 0
     if (i === 3) return true // Brand & Manufacturer (optional)
     if (i === 4) return data.price.trim().length > 0 && Number(data.price) > 0
-    return true // features, specs, inventory, highlights are optional
+    return true // images, features, specs, inventory, highlights are optional
   }
 
   const isStepAccessible = (i: number) => {
@@ -396,26 +399,27 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 5 && (
+            {step === 5 && <ProductImagesStep product={product} />}
+            {step === 6 && (
               <FeaturesStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 6 && (
+            {step === 7 && (
               <SpecificationsStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 7 && (
+            {step === 8 && (
               <InventoryStep
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
               />
             )}
-            {step === 8 && (
+            {step === 9 && (
               <ProductHighlightsStep
                 data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
