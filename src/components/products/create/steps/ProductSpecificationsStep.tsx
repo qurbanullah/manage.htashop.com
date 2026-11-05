@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Plus, Ruler, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Plus, Ruler, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { type Specification, specificationsApi } from '@/api/specifications'
 import { type Unit, unitsApi } from '@/api/units'
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 
 interface Spec {
@@ -17,13 +19,14 @@ interface Props {
   onChange: (data: { specs: Spec[] }) => void
 }
 
+function unitLabel(unit: Unit): string {
+  return `${unit.name} (${unit.symbol})`
+}
+
 export function SpecificationsStep({ data, onChange }: Props) {
-  const [specKey, setSpecKey] = useState('')
+  const [specKey, setSpecKey] = useState<string | null>(null)
   const [specValue, setSpecValue] = useState('')
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
-  const [unitSearch, setUnitSearch] = useState('')
-  const [unitDropdownOpen, setUnitDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
@@ -31,56 +34,69 @@ export function SpecificationsStep({ data, onChange }: Props) {
     staleTime: 10 * 60 * 1000,
   })
 
-  // Group units by measurement
-  const groupedUnits = units.reduce<Record<string, Unit[]>>((acc, unit) => {
-    const group = unit.measurement?.name ?? 'Other'
-    if (!acc[group]) acc[group] = []
-    acc[group].push(unit)
-    return acc
-  }, {})
+  const { data: specifications = [], isLoading: specsLoading } = useQuery({
+    queryKey: ['specifications', 'product'],
+    queryFn: () => specificationsApi.list('product'),
+    staleTime: 10 * 60 * 1000,
+  })
 
-  const filteredUnits = unitSearch
-    ? units.filter(
-        (u) =>
-          u.name.toLowerCase().includes(unitSearch.toLowerCase()) ||
-          u.symbol.toLowerCase().includes(unitSearch.toLowerCase()) ||
-          u.code.toLowerCase().includes(unitSearch.toLowerCase())
-      )
-    : units
+  // Keys already on the product are hidden so a spec cannot be added twice.
+  const usedKeys = useMemo(() => new Set(data.specs.map((spec) => spec.key)), [data.specs])
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setUnitDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  const keyOptions = useMemo<ComboboxOption[]>(
+    () =>
+      specifications
+        .filter((specification) => !usedKeys.has(specification.name))
+        .map((specification) => ({
+          value: specification.name,
+          label: specification.name,
+          group: specification.group,
+          description: specification.description,
+        })),
+    [specifications, usedKeys]
+  )
+
+  const unitOptions = useMemo<ComboboxOption[]>(
+    () =>
+      units.map((unit) => ({
+        value: String(unit.id),
+        label: unitLabel(unit),
+        group: unit.measurement?.name ?? 'Other',
+      })),
+    [units]
+  )
+
+  const suggestedUnit = (specification: Specification | undefined): Unit | null => {
+    if (!specification?.unit) return null
+    return units.find((unit) => unit.code === specification.unit) ?? null
+  }
+
+  const selectKey = (name: string | null) => {
+    setSpecKey(name)
+    setSelectedUnit(suggestedUnit(specifications.find((spec) => spec.name === name)))
+  }
 
   const addSpec = () => {
-    const key = specKey.trim()
+    const key = specKey?.trim()
     const value = specValue.trim()
-    if (key && value) {
-      const id = `spec-${Date.now()}`
-      onChange({
-        specs: [
-          ...data.specs,
-          {
-            id,
-            key,
-            value,
-            unitId: selectedUnit?.id ?? null,
-            unitName: selectedUnit ? `${selectedUnit.name} (${selectedUnit.symbol})` : '',
-          },
-        ],
-      })
-      setSpecKey('')
-      setSpecValue('')
-      setSelectedUnit(null)
-      setUnitSearch('')
-    }
+    if (!key || !value || usedKeys.has(key)) return
+
+    onChange({
+      specs: [
+        ...data.specs,
+        {
+          id: `spec-${Date.now()}`,
+          key,
+          value,
+          unitId: selectedUnit?.id ?? null,
+          unitName: selectedUnit ? unitLabel(selectedUnit) : '',
+        },
+      ],
+    })
+
+    setSpecKey(null)
+    setSpecValue('')
+    setSelectedUnit(null)
   }
 
   const removeSpec = (id: string) => {
@@ -96,18 +112,23 @@ export function SpecificationsStep({ data, onChange }: Props) {
         <div>
           <h2 className="font-semibold text-gray-900 text-lg dark:text-white">Specifications</h2>
           <p className="text-gray-500 text-sm dark:text-gray-400">
-            Add technical specs with units of measurement (optional)
+            Pick a specification from the catalogue, then enter its value (optional)
           </p>
         </div>
       </div>
 
       {/* Add row */}
       <div className="flex flex-wrap gap-2">
-        <Input
+        <Combobox
+          options={keyOptions}
           value={specKey}
-          onChange={(e) => setSpecKey(e.target.value)}
-          placeholder="Key (e.g. Weight)"
-          className="h-10 min-w-[120px] flex-[2]"
+          onChange={selectKey}
+          placeholder="Select specification"
+          searchPlaceholder="Search specifications…"
+          emptyMessage="No specifications available"
+          loading={specsLoading}
+          disabled={specsLoading}
+          className="h-10 min-w-[180px] flex-[3]"
         />
         <Input
           value={specValue}
@@ -121,89 +142,20 @@ export function SpecificationsStep({ data, onChange }: Props) {
           placeholder="Value (e.g. 250)"
           className="h-10 min-w-[100px] flex-[2]"
         />
-        {/* Unit dropdown */}
-        <div ref={dropdownRef} className="relative min-w-[160px] flex-[2]">
-          <button
-            type="button"
-            onClick={() => setUnitDropdownOpen(!unitDropdownOpen)}
-            className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-gray-700 text-sm hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500"
-          >
-            {selectedUnit ? (
-              <span>
-                <span className="font-medium">{selectedUnit.name}</span>
-                <span className="ml-1 text-gray-400">({selectedUnit.symbol})</span>
-              </span>
-            ) : (
-              <span className="text-gray-400">Select unit</span>
-            )}
-            <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
-          </button>
-
-          {unitDropdownOpen && (
-            <div className="absolute top-full left-0 z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
-              <div className="border-gray-100 border-b p-2 dark:border-gray-700">
-                <Input
-                  value={unitSearch}
-                  onChange={(e) => setUnitSearch(e.target.value)}
-                  placeholder="Search units..."
-                  className="h-8 text-xs"
-                  autoFocus
-                />
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {unitSearch ? (
-                  filteredUnits.length === 0 ? (
-                    <div className="px-3 py-4 text-center text-gray-400 text-xs">
-                      No units found
-                    </div>
-                  ) : (
-                    filteredUnits.map((unit) => (
-                      <button
-                        key={unit.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedUnit(unit)
-                          setUnitDropdownOpen(false)
-                          setUnitSearch('')
-                        }}
-                        className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      >
-                        <span className="text-gray-700 dark:text-gray-300">{unit.name}</span>
-                        <span className="text-gray-400 text-xs">{unit.symbol}</span>
-                      </button>
-                    ))
-                  )
-                ) : (
-                  Object.entries(groupedUnits).map(([group, groupUnits]) => (
-                    <div key={group}>
-                      <div className="sticky top-0 bg-gray-50 px-3 py-1 font-semibold text-[10px] text-gray-400 uppercase dark:bg-gray-800/50">
-                        {group}
-                      </div>
-                      {groupUnits.map((unit) => (
-                        <button
-                          key={unit.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedUnit(unit)
-                            setUnitDropdownOpen(false)
-                          }}
-                          className="flex w-full items-center justify-between px-4 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        >
-                          <span className="text-gray-700 dark:text-gray-300">{unit.name}</span>
-                          <span className="text-gray-400 text-xs">{unit.symbol}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <Combobox
+          options={unitOptions}
+          value={selectedUnit ? String(selectedUnit.id) : null}
+          onChange={(id) => setSelectedUnit(units.find((unit) => String(unit.id) === id) ?? null)}
+          placeholder="Select unit"
+          searchPlaceholder="Search units…"
+          emptyMessage="No units found"
+          allowClear
+          className="h-10 min-w-[150px] flex-[2]"
+        />
         <button
           type="button"
           onClick={addSpec}
-          disabled={!specKey.trim() || !specValue.trim()}
+          disabled={!specKey || !specValue.trim()}
           className="inline-flex h-10 items-center gap-1 rounded-lg bg-gray-100 px-3 font-medium text-gray-700 text-sm hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
           <Plus className="h-4 w-4" /> Add
@@ -215,7 +167,9 @@ export function SpecificationsStep({ data, onChange }: Props) {
         <div className="flex min-h-96 flex-col items-center justify-center rounded-lg border-2 border-gray-200 border-dashed py-10 text-gray-400 dark:border-gray-700">
           <Ruler className="mb-2 h-8 w-8" />
           <span className="text-sm">No specifications added yet</span>
-          <span className="mt-1 text-xs">Add details like dimensions, weight, material, etc.</span>
+          <span className="mt-1 text-xs">
+            Pick from the catalogue above — dimensions, weight, voltage…
+          </span>
         </div>
       ) : (
         <div className="min-h-96 space-y-2">
@@ -238,6 +192,7 @@ export function SpecificationsStep({ data, onChange }: Props) {
                 type="button"
                 onClick={() => removeSpec(spec.id)}
                 className="text-gray-400 hover:text-red-500"
+                aria-label={`Remove ${spec.key}`}
               >
                 <X className="h-4 w-4" />
               </button>

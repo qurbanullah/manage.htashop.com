@@ -6,6 +6,8 @@ export interface Feature {
   id: number
   name: string
   slug: string
+  /** True when the feature is recommended for the requested category. */
+  matches_category?: boolean
 }
 
 export const featuresApi = {

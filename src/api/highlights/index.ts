@@ -30,9 +30,9 @@ export interface CreateHighlightPayload {
 export const highlightsApi = {
   async list(categoryIds?: number[]): Promise<ManageHighlight[]> {
     const params: Record<string, string> = {}
-    if (categoryIds?.length) {
-      for (const id of categoryIds) params[`category_ids[]`] = String(id)
-    }
+    // The API accepts a comma-separated list (or repeated keys); a single
+    // parameter avoids collapsing multiple categories into the last one.
+    if (categoryIds?.length) params.category_ids = categoryIds.join(',')
     const res = await api.get('highlights', {
       searchParams: params,
       headers: authHeaders(),
