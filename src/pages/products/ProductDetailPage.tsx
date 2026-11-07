@@ -3,12 +3,14 @@ import {
   ArrowLeft,
   Boxes,
   DollarSign,
+  Film,
   FolderTree,
   ImagePlus,
   Layers,
   ListChecks,
   Loader2,
   Package,
+  Truck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -20,18 +22,31 @@ import { ImagesTab } from '@/components/products/detail/tabs/ImagesTab'
 import { InventoryTab } from '@/components/products/detail/tabs/InventoryTab'
 import { OverviewTab } from '@/components/products/detail/tabs/OverviewTab'
 import { PricingTab } from '@/components/products/detail/tabs/PricingTab'
+import { ShippingTab } from '@/components/products/detail/tabs/ShippingTab'
 import { VariantsTab } from '@/components/products/detail/tabs/VariantsTab'
+import { VideosTab } from '@/components/products/detail/tabs/VideosTab'
 import { UpdateProductModal } from '@/components/products/update/UpdateProductModal'
 import { Button } from '@/components/ui/button'
 
-type Tab = 'overview' | 'pricing' | 'images' | 'categories' | 'features' | 'variants' | 'inventory'
+type Tab =
+  | 'overview'
+  | 'pricing'
+  | 'images'
+  | 'videos'
+  | 'categories'
+  | 'features'
+  | 'variants'
+  | 'inventory'
+  | 'shipping'
 
 const TABS: { key: Tab; label: string; icon: typeof Package }[] = [
   { key: 'overview', label: 'Overview', icon: Package },
   { key: 'variants', label: 'Variants', icon: Layers },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
   { key: 'inventory', label: 'Inventory', icon: Boxes },
+  { key: 'shipping', label: 'Shipping', icon: Truck },
   { key: 'images', label: 'Images', icon: ImagePlus },
+  { key: 'videos', label: 'Videos', icon: Film },
   { key: 'categories', label: 'Categories', icon: FolderTree },
   { key: 'features', label: 'Features & Specs', icon: ListChecks },
 ]
@@ -130,7 +145,9 @@ export default function ProductDetailPage() {
           {activeTab === 'variants' && <VariantsTab product={product} />}
           {activeTab === 'pricing' && <PricingTab product={product} />}
           {activeTab === 'inventory' && <InventoryTab product={product} />}
+          {activeTab === 'shipping' && <ShippingTab product={product} />}
           {activeTab === 'images' && <ImagesTab product={product} />}
+          {activeTab === 'videos' && <VideosTab product={product} />}
           {activeTab === 'categories' && <CategoriesTab product={product} />}
           {activeTab === 'features' && <FeaturesTab product={product} />}
         </div>

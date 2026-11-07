@@ -1,5 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Banknote, ClipboardList, Loader2, Package, ShoppingCart } from 'lucide-react'
+import {
+  ArrowLeft,
+  Banknote,
+  ClipboardList,
+  Loader2,
+  Package,
+  ShoppingCart,
+  Truck,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ordersApi } from '@/api/orders'
@@ -7,14 +15,16 @@ import { OrderSidebar } from '@/components/orders/detail/sidebars/OrderSidebar'
 import { ItemsTab } from '@/components/orders/detail/tabs/ItemsTab'
 import { OverviewTab } from '@/components/orders/detail/tabs/OverviewTab'
 import { PaymentsTab } from '@/components/orders/detail/tabs/PaymentsTab'
+import { ShipmentsTab } from '@/components/orders/detail/tabs/ShipmentsTab'
 import { Button } from '@/components/ui/button'
 
-type Tab = 'overview' | 'items' | 'payments'
+type Tab = 'overview' | 'items' | 'payments' | 'shipments'
 
 const TABS: { key: Tab; label: string; icon: typeof Package }[] = [
   { key: 'overview', label: 'Overview', icon: ClipboardList },
   { key: 'items', label: 'Items', icon: ShoppingCart },
   { key: 'payments', label: 'Payment', icon: Banknote },
+  { key: 'shipments', label: 'Shipments', icon: Truck },
 ]
 
 export default function OrderDetailPage() {
@@ -107,6 +117,7 @@ export default function OrderDetailPage() {
           {activeTab === 'overview' && <OverviewTab order={order} />}
           {activeTab === 'items' && <ItemsTab order={order} />}
           {activeTab === 'payments' && <PaymentsTab order={order} />}
+          {activeTab === 'shipments' && <ShipmentsTab order={order} />}
         </div>
       </div>
 

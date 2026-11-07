@@ -39,6 +39,7 @@ export interface UpdateAssetPayload {
   collection_name?: string
   collection_keys?: string[]
   sort_order?: number | null
+  metadata?: Record<string, unknown>
 }
 
 export const damApi = {

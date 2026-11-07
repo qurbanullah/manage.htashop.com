@@ -4,24 +4,27 @@ import {
   ChevronRight,
   DollarSign,
   Factory,
-  FolderTree,
+  Film,
   Globe2,
+  Hash,
   ImagePlus,
   ListChecks,
   Package,
   Ruler,
   Sparkles,
+  Truck,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { damApi } from '@/api/dam'
 import { highlightsApi, type ProductHighlightAssignment } from '@/api/highlights'
 import { inventoryApi } from '@/api/inventory'
 import { productsApi } from '@/api/products'
+import { shippingApi } from '@/api/shipping'
 import { BrandManufacturerStep } from '@/components/products/create/steps/BrandManufacturerStep'
 import { BasicInfoStep } from '@/components/products/create/steps/ProductBasicInfoStep'
-import { CategoriesStep } from '@/components/products/create/steps/ProductCategoriesStep'
 import { FeaturesStep } from '@/components/products/create/steps/ProductFeaturesStep'
 import { ProductHighlightsStep } from '@/components/products/create/steps/ProductHighlightsStep'
+import { IdentifiersStep } from '@/components/products/create/steps/ProductIdentifiersStep'
 import { ProductImagesStep } from '@/components/products/create/steps/ProductImagesStep'
 import {
   type InventoryFormData,
@@ -29,12 +32,25 @@ import {
 } from '@/components/products/create/steps/ProductInventoryStep'
 import { PricingStep } from '@/components/products/create/steps/ProductPricingStep'
 import { ProductSalesChannelsStep } from '@/components/products/create/steps/ProductSalesChannelsStep'
+import {
+  EMPTY_SHIPPING_FORM,
+  hasShippingData,
+  ProductShippingStep,
+  type ShippingFormData,
+  shippingPayloadFromForm,
+} from '@/components/products/create/steps/ProductShippingStep'
 import { SpecificationsStep } from '@/components/products/create/steps/ProductSpecificationsStep'
+import {
+  ProductVideosStep,
+  type ProductVideoUpload,
+} from '@/components/products/create/steps/ProductVideosStep'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/Toaster'
 import type { UploadResult } from '@/hooks/storage/useS3Upload'
 import { isApiError } from '@/lib/api-response'
+import { suggestPartNumber } from '@/utils/product-identifiers'
+import { videoPosterMetadata } from '@/utils/product-video-upload'
 
 interface Spec {
   id: string
@@ -53,6 +69,7 @@ interface ProductData {
   unspsc: string
   ntn: string
   barcode: string
+  gtin: string
   modelNumber: string
   manufacturerId: string
   brandId: string
@@ -61,6 +78,7 @@ interface ProductData {
   description: string
   featured: UploadResult | null
   gallery: UploadResult[]
+  videos: ProductVideoUpload[]
   categoryIds: number[]
   tags: string[]
   featureNames: string[]
@@ -71,6 +89,7 @@ interface ProductData {
   unitId: string
   inventory: InventoryFormData
   highlights: ProductHighlightAssignment[]
+  shipping: ShippingFormData
 }
 
 const INITIAL: ProductData = {
@@ -82,6 +101,7 @@ const INITIAL: ProductData = {
   unspsc: '',
   ntn: '',
   barcode: '',
+  gtin: '',
   modelNumber: '',
   manufacturerId: '',
   brandId: '',
@@ -90,6 +110,7 @@ const INITIAL: ProductData = {
   description: '',
   featured: null,
   gallery: [],
+  videos: [],
   categoryIds: [],
   tags: [],
   featureNames: [],
@@ -106,18 +127,21 @@ const INITIAL: ProductData = {
     warehouseId: '',
   },
   highlights: [],
+  shipping: EMPTY_SHIPPING_FORM,
 }
 
 const STEPS = [
   { key: 'basic', label: 'Basic Info', icon: Package },
-  { key: 'categories', label: 'Categories', icon: FolderTree },
+  { key: 'identifiers', label: 'Identifiers & Codes', icon: Hash },
   { key: 'channels', label: 'Sales Channels', icon: Globe2 },
   { key: 'brand-manufacturer', label: 'Brand & Manufacturer', icon: Factory },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
   { key: 'images', label: 'Images', icon: ImagePlus },
+  { key: 'videos', label: 'Videos', icon: Film },
   { key: 'features', label: 'Features', icon: ListChecks },
   { key: 'specs', label: 'Specifications', icon: Ruler },
   { key: 'inventory', label: 'Inventory', icon: Boxes },
+  { key: 'shipping', label: 'Shipping & Packaging', icon: Truck },
   { key: 'highlights', label: 'Highlights', icon: Sparkles },
 ]
 
@@ -149,7 +173,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
   useEffect(() => {
     if (isOpen) {
       setStep(0)
-      setData(INITIAL)
+      setData({ ...INITIAL, partNumber: suggestPartNumber() })
     }
   }, [isOpen])
 
@@ -168,8 +192,8 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
   }, [data.name, data.slug])
 
   const isStepComplete = (i: number) => {
-    if (i === 0) return data.name.trim().length > 0 // Basic Info
-    if (i === 1) return data.categoryIds.length > 0 // Categories
+    if (i === 0) return data.name.trim().length > 0 && data.categoryIds.length > 0 // Basic Info
+    if (i === 1) return true // Identifiers & Codes (optional)
     if (i === 2) return data.channelCodes.length > 0 // Sales Channels
     if (i === 3) return true // Brand & Manufacturer (optional)
     if (i === 4) return data.price.trim().length > 0 && Number(data.price) > 0 // Pricing
@@ -208,6 +232,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
         unspsc: data.unspsc || undefined,
         ntn: data.ntn || undefined,
         barcode: data.barcode || undefined,
+        gtin: data.gtin.trim() || undefined,
         model_number: data.modelNumber || undefined,
         summary: data.summary || undefined,
         description: data.description || undefined,
@@ -263,6 +288,20 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
         })
       }
 
+      // Videos share the DAM table but live in their own collection.
+      for (const [index, entry] of data.videos.entries()) {
+        await damApi.ingest({
+          damable_type: 'App\\Models\\Product',
+          damable_id: product.id,
+          file_name: entry.video.original_filename || 'product-video.mp4',
+          object_key: entry.video.key,
+          mime_type: entry.video.metadata?.content_type ?? 'video/mp4',
+          collection_name: 'video',
+          sort_order: index,
+          metadata: videoPosterMetadata(entry.poster),
+        })
+      }
+
       // 3. Save inventory record (if tracking enabled)
       if (data.inventory.trackInventory) {
         await inventoryApi.upsert({
@@ -284,6 +323,11 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
           product.uuid,
           data.highlights.map((h, i) => ({ ...h, sort_order: i }))
         )
+      }
+
+      // 5. Save packaging & shipping facts
+      if (hasShippingData(data.shipping)) {
+        await shippingApi.update(product.uuid, shippingPayloadFromForm(data.shipping))
       }
 
       showSuccess(
@@ -327,7 +371,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
     >
       <div className="mx-auto flex h-full w-full max-w-7xl">
         {/* Left: Step indicator */}
-        <div className="hidden w-52 shrink-0 overflow-y-auto border-gray-100 border-r bg-gray-50 p-6 sm:block dark:border-gray-700 dark:bg-gray-800/50">
+        <div className="hidden w-72 shrink-0 overflow-y-auto border-gray-100 border-r bg-gray-50 p-6 sm:block dark:border-gray-700 dark:bg-gray-800/50">
           <h3 className="mb-6 font-semibold text-gray-900 text-sm dark:text-white">
             Product Setup
           </h3>
@@ -362,7 +406,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
                   >
                     {complete ? <Check className="h-3.5 w-3.5" /> : i + 1}
                   </span>
-                  <span className="font-medium">{s.label}</span>
+                  <span className="whitespace-nowrap font-medium">{s.label}</span>
                 </button>
               )
             })}
@@ -392,10 +436,11 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
                 slugDisabled
+                uploadPrefix={uploadPrefix}
               />
             )}
             {step === 1 && (
-              <CategoriesStep
+              <IdentifiersStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
@@ -426,25 +471,38 @@ export function AddProductModal({ isOpen, onClose, onCreated }: Props) {
               />
             )}
             {step === 6 && (
+              <ProductVideosStep
+                data={{ videos: data.videos }}
+                onChange={(videos) => setData((prev) => ({ ...prev, ...videos }))}
+                uploadPrefix={uploadPrefix}
+              />
+            )}
+            {step === 7 && (
               <FeaturesStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 7 && (
+            {step === 8 && (
               <SpecificationsStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 8 && (
+            {step === 9 && (
               <InventoryStep
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
               />
             )}
-            {step === 9 && (
+            {step === 10 && (
+              <ProductShippingStep
+                data={data.shipping}
+                onChange={(shipping) => setData((prev) => ({ ...prev, shipping }))}
+              />
+            )}
+            {step === 11 && (
               <ProductHighlightsStep
                 data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}

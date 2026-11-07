@@ -8,6 +8,8 @@ export interface Unit {
   name: string
   code: string
   symbol: string
+  factor: number
+  offset: number
   measurement?: { id: number; name: string; code: string }
 }
 

@@ -15,6 +15,8 @@ export interface ProductData {
   unspsc: string | null
   ntn: string | null
   barcode: string | null
+  gtin: string | null
+  gtin_type?: string | null
   model_number: string | null
   status: string
   summary: string | null
@@ -60,6 +62,7 @@ export interface CreateProductPayload {
   unspsc?: string
   ntn?: string
   barcode?: string
+  gtin?: string
   model_number?: string
   summary?: string
   description?: string

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Category } from '@/api/categories'
-import { CategoriesStep } from './ProductCategoriesStep'
+import { CategorySelector } from './ProductCategorySelector'
 
 const mocks = vi.hoisted(() => ({ tree: vi.fn() }))
 
@@ -43,15 +43,12 @@ const TREE: Category[] = [
 ]
 
 function Harness({ initial }: { initial: number[] }) {
-  const [data, setData] = useState<{ categoryIds: number[]; tags: string[] }>({
-    categoryIds: initial,
-    tags: [],
-  })
+  const [ids, setIds] = useState<number[]>(initial)
 
   return (
     <div>
-      <CategoriesStep data={data} onChange={setData} />
-      <output data-testid="ids">{data.categoryIds.join(',')}</output>
+      <CategorySelector value={ids} onChange={setIds} />
+      <output data-testid="ids">{ids.join(',')}</output>
     </div>
   )
 }
@@ -76,7 +73,7 @@ async function openTree(user: ReturnType<typeof userEvent.setup>) {
 
 const ids = () => screen.getByTestId('ids').textContent
 
-describe('CategoriesStep tree', () => {
+describe('CategorySelector tree', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.tree.mockResolvedValue(TREE)

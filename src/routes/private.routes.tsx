@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'))
 const ProductsPage = lazy(() => import('@/pages/products/ProductsListPage'))
 const ProductDetailPage = lazy(() => import('@/pages/products/ProductDetailPage'))
 const WarehousesPage = lazy(() => import('@/pages/warehouses/WarehousesPage'))
+const ShippingSettingsPage = lazy(() => import('@/pages/shipping/ShippingSettingsPage'))
 const ManufacturersPage = lazy(() => import('@/pages/manufacturers/ManufacturersPage'))
 const BrandsPage = lazy(() => import('@/pages/brands/BrandsPage'))
 const CouponListPage = lazy(() => import('@/pages/coupons/CouponListPage'))
@@ -27,6 +28,7 @@ export function PrivateRoutes() {
         <Route path={paths.products} element={<ProductsPage />} />
         <Route path={`${paths.products}/:slugUuid`} element={<ProductDetailPage />} />
         <Route path={paths.warehouses} element={<WarehousesPage />} />
+        <Route path={paths.shipping} element={<ShippingSettingsPage />} />
         <Route path={paths.manufacturers} element={<ManufacturersPage />} />
         <Route path={paths.brands} element={<BrandsPage />} />
         <Route path={paths.coupons} element={<CouponListPage />} />

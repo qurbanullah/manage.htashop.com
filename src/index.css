@@ -85,3 +85,12 @@ html {
 [data-radix-dialog-overlay] {
     z-index: 39;
 }
+
+/* Rich text editor placeholder (TipTap) */
+.tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    float: left;
+    height: 0;
+    pointer-events: none;
+}

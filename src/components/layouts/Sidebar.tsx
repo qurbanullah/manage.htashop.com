@@ -7,6 +7,7 @@ import {
   Settings,
   ShoppingCart,
   TicketPercent,
+  Truck,
   Warehouse,
   X,
 } from 'lucide-react'
@@ -32,6 +33,7 @@ const PRIMARY_ITEMS = [
  */
 const MANAGEMENT_ITEMS = [
   { to: paths.warehouses, label: 'Warehouses', icon: Warehouse },
+  { to: paths.shipping, label: 'Shipping', icon: Truck },
   { to: paths.coupons, label: 'Discounts', icon: TicketPercent },
   { to: paths.punchoutBuyers, label: 'Punchout Buyers', icon: Handshake },
 ]

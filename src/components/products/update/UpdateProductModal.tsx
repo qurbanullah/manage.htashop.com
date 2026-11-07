@@ -1,39 +1,52 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Boxes,
   Check,
   ChevronRight,
   DollarSign,
   Factory,
-  FolderTree,
+  Film,
   Globe2,
+  Hash,
   ImagePlus,
   ListChecks,
   Package,
   Ruler,
   Sparkles,
+  Truck,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { highlightsApi, type ProductHighlightAssignment } from '@/api/highlights'
 import { inventoryApi } from '@/api/inventory'
 import { type ProductData, productsApi } from '@/api/products'
+import { shippingApi } from '@/api/shipping'
 import { BrandManufacturerStep } from '@/components/products/create/steps/BrandManufacturerStep'
 import { BasicInfoStep } from '@/components/products/create/steps/ProductBasicInfoStep'
-import { CategoriesStep } from '@/components/products/create/steps/ProductCategoriesStep'
 import { FeaturesStep } from '@/components/products/create/steps/ProductFeaturesStep'
 import { ProductHighlightsStep } from '@/components/products/create/steps/ProductHighlightsStep'
+import { IdentifiersStep } from '@/components/products/create/steps/ProductIdentifiersStep'
 import {
   type InventoryFormData,
   InventoryStep,
 } from '@/components/products/create/steps/ProductInventoryStep'
 import { PricingStep } from '@/components/products/create/steps/ProductPricingStep'
 import { ProductSalesChannelsStep } from '@/components/products/create/steps/ProductSalesChannelsStep'
+import {
+  EMPTY_SHIPPING_FORM,
+  hasShippingData,
+  ProductShippingStep,
+  type ShippingFormData,
+  shippingFormFromApi,
+  shippingPayloadFromForm,
+} from '@/components/products/create/steps/ProductShippingStep'
 import { SpecificationsStep } from '@/components/products/create/steps/ProductSpecificationsStep'
 import { ProductImagesStep } from '@/components/products/update/steps/ProductImagesStep'
+import { ProductVideosPanel } from '@/components/products/videos/ProductVideosPanel'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/Toaster'
 import { isApiError } from '@/lib/api-response'
+import { suggestPartNumber } from '@/utils/product-identifiers'
 
 interface Spec {
   id: string
@@ -52,6 +65,7 @@ interface EditProductData {
   unspsc: string
   ntn: string
   barcode: string
+  gtin: string
   modelNumber: string
   manufacturerId: string
   brandId: string
@@ -68,18 +82,21 @@ interface EditProductData {
   unitId: string
   inventory: InventoryFormData
   highlights: ProductHighlightAssignment[]
+  shipping: ShippingFormData
 }
 
 const STEPS = [
   { key: 'basic', label: 'Basic Info', icon: Package },
-  { key: 'categories', label: 'Categories', icon: FolderTree },
+  { key: 'identifiers', label: 'Identifiers & Codes', icon: Hash },
   { key: 'channels', label: 'Sales Channels', icon: Globe2 },
   { key: 'brand-manufacturer', label: 'Brand & Manufacturer', icon: Factory },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
   { key: 'images', label: 'Images', icon: ImagePlus },
+  { key: 'videos', label: 'Videos', icon: Film },
   { key: 'features', label: 'Features', icon: ListChecks },
   { key: 'specs', label: 'Specifications', icon: Ruler },
   { key: 'inventory', label: 'Inventory', icon: Boxes },
+  { key: 'shipping', label: 'Shipping & Packaging', icon: Truck },
   { key: 'highlights', label: 'Highlights', icon: Sparkles },
 ]
 
@@ -102,12 +119,13 @@ function buildInitialData(product: ProductData): EditProductData {
   return {
     name: product.name ?? '',
     slug: product.slug ?? '',
-    sellerSku: product.seller_sku ?? '',
-    partNumber: product.part_number ?? '',
+    sellerSku: product.seller_sku || product.sku || '',
+    partNumber: product.part_number || suggestPartNumber(),
     hsCode: product.hs_code ?? '',
     unspsc: product.unspsc ?? '',
     ntn: product.ntn ?? '',
     barcode: product.barcode ?? '',
+    gtin: product.gtin ?? '',
     modelNumber: product.model_number ?? '',
     manufacturerId: firstManufacturer?.id != null ? String(firstManufacturer.id) : '',
     brandId: firstBrand?.id != null ? String(firstBrand.id) : '',
@@ -131,6 +149,7 @@ function buildInitialData(product: ProductData): EditProductData {
       warehouseId: '',
     },
     highlights: [],
+    shipping: EMPTY_SHIPPING_FORM,
   }
 }
 
@@ -144,9 +163,12 @@ interface Props {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-step edit modal with several effects
 export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Props) {
   const { success: showSuccess, error: showError } = useToast()
+  const queryClient = useQueryClient()
   const [step, setStep] = useState(0)
   const [data, setData] = useState<EditProductData>(() => buildInitialData(product))
   const [loading, setLoading] = useState(false)
+
+  const uploadPrefix = useMemo(() => `products/${product.uuid}`, [product.uuid])
 
   const { data: inventories = [] } = useQuery({
     queryKey: ['inventory', 'product', product.id],
@@ -159,6 +181,13 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     queryKey: ['product-highlights', product.uuid],
     queryFn: () => highlightsApi.productHighlights(product.uuid),
     enabled: isOpen && !!product,
+  })
+
+  const { data: existingShipping = null } = useQuery({
+    queryKey: ['product-shipping', product.uuid],
+    queryFn: () => shippingApi.get(product.uuid),
+    enabled: isOpen && !!product,
+    staleTime: 5 * 60 * 1000,
   })
 
   useEffect(() => {
@@ -210,9 +239,15 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     }))
   }, [inventories])
 
+  // Pre-populate the shipping step from the saved packaging record.
+  useEffect(() => {
+    if (!isOpen) return
+    setData((prev) => ({ ...prev, shipping: shippingFormFromApi(existingShipping) }))
+  }, [existingShipping, isOpen])
+
   const isStepComplete = (i: number) => {
-    if (i === 0) return data.name.trim().length > 0
-    if (i === 1) return data.categoryIds.length > 0
+    if (i === 0) return data.name.trim().length > 0 && data.categoryIds.length > 0
+    if (i === 1) return true // Identifiers & Codes (optional)
     if (i === 2) return data.channelCodes.length > 0
     if (i === 3) return true // Brand & Manufacturer (optional)
     if (i === 4) return data.price.trim().length > 0 && Number(data.price) > 0
@@ -240,6 +275,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
         unspsc: data.unspsc || undefined,
         ntn: data.ntn || undefined,
         barcode: data.barcode || undefined,
+        gtin: data.gtin.trim() || undefined,
         model_number: data.modelNumber || undefined,
         summary: data.summary || undefined,
         description: data.description || undefined,
@@ -281,6 +317,13 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
         data.highlights.map((h, i) => ({ ...h, sort_order: i }))
       )
 
+      // Persist packaging data when the editor filled anything in, and also when
+      // a record already existed so clearing the fields is saved too.
+      if (hasShippingData(data.shipping) || existingShipping) {
+        const saved = await shippingApi.update(product.uuid, shippingPayloadFromForm(data.shipping))
+        queryClient.setQueryData(['product-shipping', product.uuid], saved)
+      }
+
       showSuccess('Product updated')
       onUpdated?.()
       onClose()
@@ -318,7 +361,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     >
       <div className="mx-auto flex h-full w-full max-w-7xl">
         {/* Left: Step indicator */}
-        <div className="hidden w-52 shrink-0 overflow-y-auto border-gray-100 border-r bg-gray-50 p-6 sm:block dark:border-gray-700 dark:bg-gray-800/50">
+        <div className="hidden w-72 shrink-0 overflow-y-auto border-gray-100 border-r bg-gray-50 p-6 sm:block dark:border-gray-700 dark:bg-gray-800/50">
           <h3 className="mb-6 font-semibold text-gray-900 text-sm dark:text-white">
             Product Setup
           </h3>
@@ -353,7 +396,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
                   >
                     {complete ? <Check className="h-3.5 w-3.5" /> : i + 1}
                   </span>
-                  <span className="font-medium">{s.label}</span>
+                  <span className="whitespace-nowrap font-medium">{s.label}</span>
                 </button>
               )
             })}
@@ -372,13 +415,14 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
                 slugDisabled={product.status === 'active'}
-                systemSku={product.sku ?? undefined}
+                uploadPrefix={uploadPrefix}
               />
             )}
             {step === 1 && (
-              <CategoriesStep
+              <IdentifiersStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
+                systemSku={product.sku ?? undefined}
               />
             )}
             {step === 2 && (
@@ -400,26 +444,33 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
               />
             )}
             {step === 5 && <ProductImagesStep product={product} />}
-            {step === 6 && (
+            {step === 6 && <ProductVideosPanel product={product} />}
+            {step === 7 && (
               <FeaturesStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 7 && (
+            {step === 8 && (
               <SpecificationsStep
                 data={data}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}
               />
             )}
-            {step === 8 && (
+            {step === 9 && (
               <InventoryStep
                 data={data.inventory}
                 onChange={(inventory) => setData((prev) => ({ ...prev, inventory }))}
                 defaultSku={data.sellerSku}
               />
             )}
-            {step === 9 && (
+            {step === 10 && (
+              <ProductShippingStep
+                data={data.shipping}
+                onChange={(shipping) => setData((prev) => ({ ...prev, shipping }))}
+              />
+            )}
+            {step === 11 && (
               <ProductHighlightsStep
                 data={{ categoryIds: data.categoryIds, highlights: data.highlights }}
                 onChange={(partial) => setData((prev) => ({ ...prev, ...partial }))}

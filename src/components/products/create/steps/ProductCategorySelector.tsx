@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, FolderTree, Search, Tags, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { type Category, categoriesApi } from '@/api/categories'
 import { Input } from '@/components/ui/input'
@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 interface Props {
-  data: { categoryIds: number[]; tags: string[] }
-  onChange: (data: { categoryIds: number[]; tags: string[] }) => void
+  value: number[]
+  onChange: (ids: number[]) => void
 }
 
 /**
@@ -119,8 +119,7 @@ function categoryPath(index: CategoryIndex, id: number): string {
   return parts.join(' → ')
 }
 
-export function CategoriesStep({ data, onChange }: Props) {
-  const [tagInput, setTagInput] = useState('')
+export function CategorySelector({ value, onChange }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -133,17 +132,17 @@ export function CategoriesStep({ data, onChange }: Props) {
   })
 
   const index = useMemo(() => buildCategoryIndex(categories), [categories])
-  const selected = useMemo(() => new Set(data.categoryIds), [data.categoryIds])
+  const selected = useMemo(() => new Set(value), [value])
 
   // Products saved before the "parent is implied" rule only carry the leaf
   // category. Close the selection over its ancestors as soon as the tree loads
   // so the parent ids are part of the payload the next time it is saved.
   useEffect(() => {
-    const closed = closeOverAncestors(index, data.categoryIds)
-    if (closed.length !== data.categoryIds.length) {
-      onChange({ ...data, categoryIds: closed })
+    const closed = closeOverAncestors(index, value)
+    if (closed.length !== value.length) {
+      onChange(closed)
     }
-  }, [index, data, onChange])
+  }, [index, value, onChange])
 
   // Start with the roots expanded, then make sure every selected node is visible.
   const expandedInitialized = useRef(false)
@@ -155,12 +154,12 @@ export function CategoriesStep({ data, onChange }: Props) {
   }, [index])
 
   useEffect(() => {
-    if (data.categoryIds.length === 0) return
+    if (value.length === 0) return
     setExpanded((prev) => {
       const next = new Set(prev)
       let changed = false
 
-      for (const id of data.categoryIds) {
+      for (const id of value) {
         for (const ancestor of ancestorsOf(index, id)) {
           if (next.has(ancestor)) continue
           next.add(ancestor)
@@ -170,7 +169,7 @@ export function CategoriesStep({ data, onChange }: Props) {
 
       return changed ? next : prev
     })
-  }, [index, data.categoryIds])
+  }, [index, value])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -185,13 +184,13 @@ export function CategoriesStep({ data, onChange }: Props) {
   }, [])
 
   const commitSelection = (ids: number[]) => {
-    onChange({ ...data, categoryIds: [...new Set(ids)] })
+    onChange([...new Set(ids)])
   }
 
   const deselectCategory = (id: number) => {
     // A parent cannot stay selected without its children, so remove the branch.
     const removed = new Set([id, ...descendantsOf(index, id)])
-    commitSelection(data.categoryIds.filter((categoryId) => !removed.has(categoryId)))
+    commitSelection(value.filter((categoryId) => !removed.has(categoryId)))
   }
 
   const toggleCategory = (id: number) => {
@@ -201,7 +200,7 @@ export function CategoriesStep({ data, onChange }: Props) {
     }
 
     // Selecting a child selects (and saves) every ancestor.
-    commitSelection([...data.categoryIds, id, ...ancestorsOf(index, id)])
+    commitSelection([...value, id, ...ancestorsOf(index, id)])
   }
 
   const toggleExpanded = (id: number) => {
@@ -218,213 +217,136 @@ export function CategoriesStep({ data, onChange }: Props) {
     ? index.ordered.filter((category) => category.name.toLowerCase().includes(query))
     : []
 
-  // Tags
-  const addTag = () => {
-    const tag = tagInput.trim().toLowerCase()
-    if (tag && !data.tags.includes(tag)) {
-      onChange({ ...data, tags: [...data.tags, tag] })
-      setTagInput('')
-    }
-  }
-
-  const removeTag = (tag: string) => {
-    onChange({ ...data, tags: data.tags.filter((t) => t !== tag) })
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
-          <FolderTree className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-        </div>
-        <div>
-          <h2 className="font-semibold text-gray-900 text-lg dark:text-white">
-            Categories &amp; Tags
-          </h2>
-          <p className="text-gray-500 text-sm dark:text-gray-400">Organize your product</p>
-        </div>
-      </div>
-
-      {/* ── Category tree ── */}
-      <div ref={dropdownRef} className="relative space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-            Categories <span className="ml-1 text-red-500">*</span>
-          </Label>
-          {data.categoryIds.length > 0 && (
-            <button
-              type="button"
-              onClick={() => commitSelection([])}
-              className="font-medium text-gray-500 text-xs hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          aria-expanded={dropdownOpen}
-          aria-label="Categories"
-          className="flex h-11 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-left text-sm transition-colors hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-gray-500"
-        >
-          <span
-            className={
-              data.categoryIds.length > 0 ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400'
-            }
-          >
-            {data.categoryIds.length > 0
-              ? `${data.categoryIds.length} categor${data.categoryIds.length === 1 ? 'y' : 'ies'} selected`
-              : 'Select categories...'}
-          </span>
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 shrink-0 text-gray-400 transition-transform',
-              dropdownOpen && 'rotate-180'
-            )}
-          />
-        </button>
-
-        {/* Dropdown */}
-        {dropdownOpen && (
-          <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
-            <div className="border-gray-100 border-b p-2 dark:border-gray-700">
-              <div className="relative">
-                <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search categories..."
-                  className="h-8 pl-8 text-xs"
-                  autoFocus
-                />
-              </div>
-              <p className="mt-1.5 px-1 text-[11px] text-gray-400 dark:text-gray-500">
-                Selecting a subcategory automatically selects its parent categories.
-              </p>
-            </div>
-
-            <div className="max-h-64 overflow-y-auto py-1">
-              {query ? (
-                <SearchResults
-                  results={searchResults}
-                  index={index}
-                  selected={selected}
-                  onToggle={toggleCategory}
-                />
-              ) : index.roots.length === 0 ? (
-                <div className="px-3 py-6 text-center text-gray-400 text-sm">
-                  No categories available
-                </div>
-              ) : (
-                <CategoryTree
-                  nodes={index.roots}
-                  depth={0}
-                  index={index}
-                  selected={selected}
-                  expanded={expanded}
-                  onToggleSelected={toggleCategory}
-                  onToggleExpanded={toggleExpanded}
-                />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between border-gray-100 border-t px-3 py-2 dark:border-gray-700">
-              <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                {data.categoryIds.length} selected
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false)
-                  setSearch('')
-                }}
-                className="rounded-md px-2 py-1 font-medium text-blue-600 text-xs hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Selected pills */}
-        {data.categoryIds.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {data.categoryIds.map((id) => {
-              const category = index.byId.get(id)
-              const name = category?.name ?? `#${id}`
-              const path = category ? categoryPath(index, id) : name
-              const hasChildren = (index.childrenByParent.get(id) ?? []).length > 0
-
-              return (
-                <span
-                  key={id}
-                  title={path}
-                  className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 font-medium text-purple-700 text-xs dark:bg-purple-900/30 dark:text-purple-300"
-                >
-                  {name}
-                  <button
-                    type="button"
-                    onClick={() => deselectCategory(id)}
-                    aria-label={
-                      hasChildren ? `Remove ${name} and its subcategories` : `Remove ${name}`
-                    }
-                    className="hover:text-red-500"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Tags ── */}
-      <div className="space-y-1.5">
+    <div ref={dropdownRef} className="relative space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
         <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-          Tags <span className="ml-1 font-normal text-gray-400">(optional)</span>
+          Categories <span className="ml-1 text-red-500">*</span>
         </Label>
-        <div className="flex gap-2">
-          <Input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                addTag()
-              }
-            }}
-            placeholder="Add a tag..."
-            className="h-11"
-          />
+        {value.length > 0 && (
           <button
             type="button"
-            onClick={addTag}
-            disabled={!tagInput.trim()}
-            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-4 font-medium text-gray-700 text-sm hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            onClick={() => commitSelection([])}
+            className="font-medium text-gray-500 text-xs hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
           >
-            <Tags className="h-4 w-4" />
-            Add
+            Clear all
           </button>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setDropdownOpen(!dropdownOpen)}
+        aria-expanded={dropdownOpen}
+        aria-label="Categories"
+        className="flex h-11 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-left text-sm transition-colors hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-gray-500"
+      >
+        <span className={value.length > 0 ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400'}>
+          {value.length > 0
+            ? `${value.length} categor${value.length === 1 ? 'y' : 'ies'} selected`
+            : 'Select categories...'}
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-gray-400 transition-transform',
+            dropdownOpen && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {dropdownOpen && (
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+          <div className="border-gray-100 border-b p-2 dark:border-gray-700">
+            <div className="relative">
+              <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search categories..."
+                className="h-8 pl-8 text-xs"
+                autoFocus
+              />
+            </div>
+            <p className="mt-1.5 px-1 text-[11px] text-gray-400 dark:text-gray-500">
+              Selecting a subcategory automatically selects its parent categories.
+            </p>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto py-1">
+            {query ? (
+              <SearchResults
+                results={searchResults}
+                index={index}
+                selected={selected}
+                onToggle={toggleCategory}
+              />
+            ) : index.roots.length === 0 ? (
+              <div className="px-3 py-6 text-center text-gray-400 text-sm">
+                No categories available
+              </div>
+            ) : (
+              <CategoryTree
+                nodes={index.roots}
+                depth={0}
+                index={index}
+                selected={selected}
+                expanded={expanded}
+                onToggleSelected={toggleCategory}
+                onToggleExpanded={toggleExpanded}
+              />
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border-gray-100 border-t px-3 py-2 dark:border-gray-700">
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+              {value.length} selected
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(false)
+                setSearch('')
+              }}
+              className="rounded-md px-2 py-1 font-medium text-blue-600 text-xs hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+            >
+              Done
+            </button>
+          </div>
         </div>
-        {data.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {data.tags.map((tag) => (
+      )}
+
+      {/* Selected pills */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {value.map((id) => {
+            const category = index.byId.get(id)
+            const name = category?.name ?? `#${id}`
+            const path = category ? categoryPath(index, id) : name
+            const hasChildren = (index.childrenByParent.get(id) ?? []).length > 0
+
+            return (
               <span
-                key={tag}
-                className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 font-medium text-blue-700 text-xs dark:bg-blue-900/30 dark:text-blue-300"
+                key={id}
+                title={path}
+                className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 font-medium text-purple-700 text-xs dark:bg-purple-900/30 dark:text-purple-300"
               >
-                {tag}
-                <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500">
+                {name}
+                <button
+                  type="button"
+                  onClick={() => deselectCategory(id)}
+                  aria-label={
+                    hasChildren ? `Remove ${name} and its subcategories` : `Remove ${name}`
+                  }
+                  className="hover:text-red-500"
+                >
                   <X className="h-3 w-3" />
                 </button>
               </span>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

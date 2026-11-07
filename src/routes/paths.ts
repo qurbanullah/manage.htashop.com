@@ -19,6 +19,7 @@ export const paths = {
   dashboard: '/dashboard',
   products: '/products',
   warehouses: '/warehouses',
+  shipping: '/shipping',
   manufacturers: '/manufacturers',
   brands: '/brands',
   coupons: '/coupons',
