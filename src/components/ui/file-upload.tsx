@@ -11,6 +11,8 @@ export interface FileUploadProps {
   label?: string
   helpText?: string
   required?: boolean
+  /** Overrides the "Allowed: …" line under the dropzone for other file types. */
+  allowedText?: string
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
@@ -21,6 +23,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   label = 'Manuscript File',
   helpText,
   required = false,
+  allowedText,
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const inputId = React.useId()
@@ -106,7 +109,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             </Button>
             {helpText && <div className="mt-2 text-gray-500 text-xs">{helpText}</div>}
             <div className="mt-1 text-gray-400 text-xs">
-              Allowed: PDF, DOC, DOCX — Max {maxSizeMB} MB
+              {allowedText ?? `Allowed: PDF, DOC, DOCX — Max ${maxSizeMB} MB`}
             </div>
           </div>
         ) : (

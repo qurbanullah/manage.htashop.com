@@ -1,5 +1,6 @@
 import { Calendar, Hash } from 'lucide-react'
 import type { ProductData } from '@/api/products'
+import { RichTextContent } from '@/components/ui/rich-text'
 
 interface Props {
   product: ProductData
@@ -57,9 +58,7 @@ export function OverviewTab({ product }: Props) {
       {product.description && (
         <div>
           <span className="font-medium text-gray-400 text-xs dark:text-gray-500">Description</span>
-          <p className="mt-1 whitespace-pre-wrap text-gray-700 text-sm dark:text-gray-300">
-            {product.description}
-          </p>
+          <RichTextContent html={product.description} className="mt-1" />
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ClipboardList,
+  FileUp,
   Handshake,
   LayoutGrid,
   Package,
@@ -32,6 +33,7 @@ const PRIMARY_ITEMS = [
  * primary navigation stays focused (industry-standard pattern for admin UIs).
  */
 const MANAGEMENT_ITEMS = [
+  { to: paths.productImports, label: 'Product imports', icon: FileUp },
   { to: paths.warehouses, label: 'Warehouses', icon: Warehouse },
   { to: paths.shipping, label: 'Shipping', icon: Truck },
   { to: paths.coupons, label: 'Discounts', icon: TicketPercent },

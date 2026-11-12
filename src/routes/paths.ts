@@ -18,6 +18,7 @@ export const paths = {
   // Protected
   dashboard: '/dashboard',
   products: '/products',
+  productImports: '/product-imports',
   warehouses: '/warehouses',
   shipping: '/shipping',
   manufacturers: '/manufacturers',

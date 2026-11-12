@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import { ImageDropzone } from '@/components/products/shared/ImageDropzone'
 import { useToast } from '@/components/ui/Toaster'
 import type { UploadResult } from '@/hooks/storage/useS3Upload'
 import {
@@ -49,8 +50,6 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
   const dataRef = useRef(data)
   dataRef.current = data
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [isDraggingFeatured, setIsDraggingFeatured] = useState(false)
-  const [isDraggingGallery, setIsDraggingGallery] = useState(false)
   const [featuredPreview, setFeaturedPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState<Record<string, UploadingEntry>>({})
 
@@ -143,10 +142,8 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
     [uploadGalleryFile, showError]
   )
 
-  const handleGalleryDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDraggingGallery(false)
-    processGalleryFiles(e.dataTransfer.files)
+  const handleGalleryDrop = (files: FileList) => {
+    processGalleryFiles(files)
   }
 
   const removeGallery = (index: number) => {
@@ -205,68 +202,61 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
           Primary product photo — use a clean white/neutral background
         </p>
 
-        {/* Uploaded */}
-        {data.featured && featuredPreview ? (
-          <div className="group relative w-64 overflow-hidden rounded-lg border-2 border-green-300 dark:border-green-600">
-            <img
-              src={featuredPreview}
-              alt="Featured"
-              className="h-48 w-full bg-gray-50 object-contain dark:bg-gray-800"
-            />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent p-2">
-              <span className="font-medium text-white text-xs">
-                {data.featured.original_filename}
-              </span>
-              <button
-                type="button"
-                onClick={removeFeatured}
-                className="rounded-full bg-white/20 p-1 text-white hover:bg-red-500"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+        {/* Dropping anywhere on the tile replaces the featured image */}
+        <ImageDropzone
+          onFiles={(files) => {
+            const file = files[0]
+            if (file) void handleFeaturedFile(file)
+          }}
+          disabled={uploadingCount > 0}
+          className="w-64 rounded-lg"
+          activeClassName="ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900"
+        >
+          {data.featured && featuredPreview ? (
+            <div className="group relative w-64 overflow-hidden rounded-lg border-2 border-green-300 dark:border-green-600">
+              <img
+                src={featuredPreview}
+                alt="Featured"
+                className="h-48 w-full bg-gray-50 object-contain dark:bg-gray-800"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent p-2">
+                <span className="font-medium text-white text-xs">
+                  {data.featured.original_filename}
+                </span>
+                <button
+                  type="button"
+                  onClick={removeFeatured}
+                  className="rounded-full bg-white/20 p-1 text-white hover:bg-red-500"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-        ) : uploadingCount > 0 && featuredPreview ? (
-          <div className="relative w-64 overflow-hidden rounded-lg border-2 border-blue-300 dark:border-blue-600">
-            <img
-              src={featuredPreview}
-              alt=""
-              className="h-48 w-full bg-gray-50 object-contain opacity-50 dark:bg-gray-800"
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-blue-500/10">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              <span className="font-medium text-blue-700 text-xs dark:text-blue-300">
-                Uploading...
-              </span>
+          ) : uploadingCount > 0 && featuredPreview ? (
+            <div className="relative w-64 overflow-hidden rounded-lg border-2 border-blue-300 dark:border-blue-600">
+              <img
+                src={featuredPreview}
+                alt=""
+                className="h-48 w-full bg-gray-50 object-contain opacity-50 dark:bg-gray-800"
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-blue-500/10">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <span className="font-medium text-blue-700 text-xs dark:text-blue-300">
+                  Uploading...
+                </span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onDragOver={(e) => {
-              e.preventDefault()
-              setIsDraggingFeatured(true)
-            }}
-            onDragLeave={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDraggingFeatured(false)
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              setIsDraggingFeatured(false)
-              const file = e.dataTransfer.files?.[0]
-              if (file) handleFeaturedFile(file)
-            }}
-            onClick={() => featuredInputRef.current?.click()}
-            className={`flex h-32 w-64 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed transition-colors ${
-              isDraggingFeatured
-                ? 'border-blue-500 bg-blue-50 text-blue-600 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-400'
-                : 'border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:border-gray-600 dark:hover:border-blue-400'
-            }`}
-          >
-            <Upload className="h-6 w-6" />
-            <span className="font-medium text-xs">Drop image here or click</span>
-          </button>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => featuredInputRef.current?.click()}
+              className="flex h-32 w-64 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-gray-300 border-dashed text-gray-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-gray-600 dark:hover:border-blue-400"
+            >
+              <Upload className="h-6 w-6" />
+              <span className="font-medium text-xs">Drop image here or click</span>
+            </button>
+          )}
+        </ImageDropzone>
         <input
           ref={featuredInputRef}
           type="file"
@@ -301,27 +291,17 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
         </div>
 
         {/* Gallery drop zone */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target has no ARIA equivalent */}
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            if (e.dataTransfer.types.includes('Files')) setIsDraggingGallery(true)
-          }}
-          onDragLeave={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDraggingGallery(false)
-          }}
-          onDrop={handleGalleryDrop}
-          className={`rounded-lg border-2 p-2 transition-colors ${
-            isDraggingGallery
-              ? 'border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
-              : 'border-transparent'
-          }`}
+        <ImageDropzone
+          onFiles={handleGalleryDrop}
+          disabled={uploadingCount > 0}
+          className="rounded-lg border-2 border-transparent p-2 transition-colors"
+          activeClassName="border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
         >
           {data.gallery.length === 0 && uploadingCount === 0 ? (
             <button
               type="button"
               onClick={() => galleryInputRef.current?.click()}
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-gray-200 border-dashed py-10 text-gray-400 transition-colors hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+              className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-gray-200 border-dashed py-10 text-gray-400 transition-colors hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
             >
               <Upload className="h-8 w-8" />
               <span className="font-medium text-sm">Drop images here or click to browse</span>
@@ -424,13 +404,7 @@ export function ProductImagesStep({ data, onChange, uploadPrefix }: Props) {
               )}
             </div>
           )}
-
-          {isDraggingGallery && (
-            <div className="mt-2 rounded-lg border-2 border-blue-400 border-dashed py-3 text-center font-medium text-blue-600 text-xs dark:text-blue-400">
-              Drop files to add to gallery
-            </div>
-          )}
-        </div>
+        </ImageDropzone>
 
         <input
           ref={galleryInputRef}

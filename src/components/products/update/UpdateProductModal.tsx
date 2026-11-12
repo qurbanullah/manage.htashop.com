@@ -169,6 +169,7 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
   const [loading, setLoading] = useState(false)
 
   const uploadPrefix = useMemo(() => `products/${product.uuid}`, [product.uuid])
+  const productUuid = product.uuid
 
   const { data: inventories = [] } = useQuery({
     queryKey: ['inventory', 'product', product.id],
@@ -190,12 +191,17 @@ export function UpdateProductModal({ product, isOpen, onClose, onUpdated }: Prop
     staleTime: 5 * 60 * 1000,
   })
 
+  // Reset the wizard when the modal opens or a different product is selected.
+  // `product` itself is deliberately not a dependency: the image step refetches
+  // the product after every upload, and resetting on that refetch would throw
+  // the operator back to step 1 mid-edit.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on open/selection only
   useEffect(() => {
     if (isOpen) {
       setStep(0)
       setData(buildInitialData(product))
     }
-  }, [isOpen, product])
+  }, [isOpen, productUuid])
 
   // Auto-generate slug from the name while typing, for draft products only.
   // Published (active) products keep their frozen slug.

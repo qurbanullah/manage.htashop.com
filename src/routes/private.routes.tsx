@@ -6,6 +6,7 @@ import { paths } from '@/routes/paths'
 
 const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'))
 const ProductsPage = lazy(() => import('@/pages/products/ProductsListPage'))
+const ProductImportsPage = lazy(() => import('@/pages/products/ProductImportsPage'))
 const ProductDetailPage = lazy(() => import('@/pages/products/ProductDetailPage'))
 const WarehousesPage = lazy(() => import('@/pages/warehouses/WarehousesPage'))
 const ShippingSettingsPage = lazy(() => import('@/pages/shipping/ShippingSettingsPage'))
@@ -26,6 +27,7 @@ export function PrivateRoutes() {
       <Route element={<AppLayout />}>
         <Route path={paths.dashboard} element={<Dashboard />} />
         <Route path={paths.products} element={<ProductsPage />} />
+        <Route path={paths.productImports} element={<ProductImportsPage />} />
         <Route path={`${paths.products}/:slugUuid`} element={<ProductDetailPage />} />
         <Route path={paths.warehouses} element={<WarehousesPage />} />
         <Route path={paths.shipping} element={<ShippingSettingsPage />} />
