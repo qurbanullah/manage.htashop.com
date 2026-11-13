@@ -29,5 +29,7 @@ export const paths = {
   punchoutBuyers: '/punchout/buyers',
   orders: '/orders',
   orderDetail: '/orders/:uuid',
+  quotes: '/quotes',
+  quoteDetail: '/quotes/:uuid',
   settings: '/settings',
 } as const

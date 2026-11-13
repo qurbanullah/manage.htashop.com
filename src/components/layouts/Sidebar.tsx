@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ClipboardList,
+  FileText,
   FileUp,
   Handshake,
   LayoutGrid,
@@ -26,6 +27,7 @@ const PRIMARY_ITEMS = [
   { to: paths.dashboard, label: 'Dashboard', icon: LayoutGrid },
   { to: paths.products, label: 'Products', icon: ShoppingCart },
   { to: paths.orders, label: 'Orders', icon: ClipboardList },
+  { to: paths.quotes, label: 'Quotes', icon: FileText },
 ]
 
 /**
