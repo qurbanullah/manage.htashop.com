@@ -101,9 +101,16 @@ export function ProductImportSummary({
           </p>
         )}
 
+        {data.status === 'validated' && counts.valid > 0 && (
+          <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700 text-sm dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
+            Validation finished. Review the row report below, then import the{' '}
+            {counts.valid.toLocaleString()} valid rows.
+          </p>
+        )}
+
         {data.options?.dry_run === true && data.status === 'completed' && (
           <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700 text-sm dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
-            Validation-only run. Nothing has been written yet — commit to apply the valid rows.
+            Validation-only run. Nothing has been written yet — import to apply the valid rows.
           </p>
         )}
 
@@ -115,7 +122,7 @@ export function ProductImportSummary({
               ) : (
                 <Play className="mr-2 h-4 w-4" />
               )}
-              Commit {counts.valid.toLocaleString()} rows
+              Import {counts.valid.toLocaleString()} rows
             </Button>
           )}
 

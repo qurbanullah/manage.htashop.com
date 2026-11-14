@@ -22,7 +22,7 @@ const importRecord = {
   original_filename: 'products.csv',
   format: 'csv',
   size_bytes: 1024,
-  status: 'validating',
+  status: 'validated',
   status_label: 'Validating rows',
   is_finished: false,
   progress: 0,
@@ -113,7 +113,7 @@ describe('productImportsApi', () => {
     expect(options.body.get('create_missing')).toBe('1')
     expect(options.body.get('dry_run')).toBe('0')
     expect(options.body.get('download_images')).toBe('0')
-    expect(response.data.status).toBe('validating')
+    expect(response.data.status).toBe('validated')
   })
 
   it('commits and cancels through the import uuid', async () => {

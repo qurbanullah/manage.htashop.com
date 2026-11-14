@@ -3,6 +3,7 @@ export type ProductImportStatus =
   | 'pending'
   | 'parsing'
   | 'validating'
+  | 'validated'
   | 'importing'
   | 'completed'
   | 'completed_with_errors'
