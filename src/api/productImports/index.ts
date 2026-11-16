@@ -31,6 +31,8 @@ export interface ProductImportData {
   kind?: ProductImportKind
   kind_label?: string
   is_finished: boolean
+  /** `importing` with no progress inside the recovery window. */
+  is_stalled: boolean
   progress: number
   options: Record<string, unknown>
   counts: ProductImportCounts
@@ -201,6 +203,19 @@ export const productImportsApi = {
 
   async commit(uuid: string): Promise<ApiResponse<ProductImportData>> {
     const res = await api.post(`product-imports/${uuid}/commit`, {
+      headers: authHeaders(),
+      throwHttpErrors: false,
+    })
+
+    return parseApiResponse<ProductImportData>(res)
+  },
+
+  /**
+   * Resume an import whose worker stopped mid-run. Applying is idempotent, so
+   * this continues from the last applied row rather than restarting the file.
+   */
+  async retry(uuid: string): Promise<ApiResponse<ProductImportData>> {
+    const res = await api.post(`product-imports/${uuid}/retry`, {
       headers: authHeaders(),
       throwHttpErrors: false,
     })

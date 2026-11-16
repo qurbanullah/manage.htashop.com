@@ -84,6 +84,20 @@ export function useCommitProductImport() {
   })
 }
 
+export function useRetryProductImport() {
+  const queryClient = useQueryClient()
+  const { success, error: showError } = useToast()
+
+  return useMutation({
+    mutationFn: (uuid: string) => productImportsApi.retry(uuid),
+    onSuccess: (response) => {
+      success('Import re-queued', response.message)
+      queryClient.invalidateQueries({ queryKey: productImportKeys.all })
+    },
+    onError: (error: Error) => showError('The import could not be resumed', error.message),
+  })
+}
+
 export function useCancelProductImport() {
   const queryClient = useQueryClient()
   const { success, error: showError } = useToast()

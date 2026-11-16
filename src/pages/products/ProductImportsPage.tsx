@@ -18,6 +18,7 @@ import {
   useProductImportDetail,
   useProductImportList,
   useProductImportRows,
+  useRetryProductImport,
   useUploadProductImport,
 } from '@/hooks/productImports/useProductImports'
 
@@ -65,6 +66,7 @@ export default function ProductImportsPage() {
 
   const upload = useUploadProductImport()
   const commit = useCommitProductImport()
+  const retry = useRetryProductImport()
   const cancel = useCancelProductImport()
   const downloadErrors = useDownloadImportErrors()
 
@@ -127,9 +129,11 @@ export default function ProductImportsPage() {
         <ProductImportSummary
           data={detailData}
           isCommitting={commit.isPending}
+          isRetrying={retry.isPending}
           isCancelling={cancel.isPending}
           isDownloading={downloadErrors.isPending}
           onCommit={() => commit.mutate(detailData.uuid)}
+          onRetry={() => retry.mutate(detailData.uuid)}
           onCancel={() => cancel.mutate(detailData.uuid)}
           onDownloadErrors={() =>
             downloadErrors.mutate({

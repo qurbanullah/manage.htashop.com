@@ -1,4 +1,4 @@
-import { Download, Loader2, Play, XCircle } from 'lucide-react'
+import { Download, Loader2, Play, RotateCw, XCircle } from 'lucide-react'
 import type { ProductImportData } from '@/api/productImports'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,9 +7,11 @@ import { ProductImportStatusBadge } from './ProductImportStatusBadge'
 interface ProductImportSummaryProps {
   data: ProductImportData
   isCommitting: boolean
+  isRetrying: boolean
   isCancelling: boolean
   isDownloading: boolean
   onCommit: () => void
+  onRetry: () => void
   onCancel: () => void
   onDownloadErrors: () => void
 }
@@ -41,9 +43,11 @@ const RUNNING_STATUSES = ['pending', 'parsing', 'validating', 'importing']
 export function ProductImportSummary({
   data,
   isCommitting,
+  isRetrying,
   isCancelling,
   isDownloading,
   onCommit,
+  onRetry,
   onCancel,
   onDownloadErrors,
 }: ProductImportSummaryProps) {
@@ -106,6 +110,29 @@ export function ProductImportSummary({
             Validation finished. Review the row report below, then import the{' '}
             {counts.valid.toLocaleString()} valid rows.
           </p>
+        )}
+
+        {data.is_stalled && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 text-sm dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
+            <span>
+              No progress for a while — the queue worker may not have picked this up. Retrying
+              resumes from the last applied row, so nothing is imported twice.
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCw className="mr-2 h-4 w-4" />
+              )}
+              Retry import
+            </Button>
+          </div>
         )}
 
         {data.options?.dry_run === true && data.status === 'completed' && (

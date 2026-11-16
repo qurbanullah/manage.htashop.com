@@ -25,6 +25,7 @@ const importRecord = {
   status: 'validated',
   status_label: 'Validating rows',
   is_finished: false,
+  is_stalled: false,
   progress: 0,
   options: {},
   counts: {
@@ -134,6 +135,20 @@ describe('productImportsApi', () => {
       'product-imports/import-uuid/cancel',
       expect.objectContaining({})
     )
+  })
+
+  it('retries a stalled import through the import uuid', async () => {
+    mocks.post.mockResolvedValue(
+      jsonResponse({ success: true, message: 'Import re-queued.', data: importRecord }, true, 202)
+    )
+
+    const response = await productImportsApi.retry('import-uuid')
+
+    expect(mocks.post).toHaveBeenCalledWith(
+      'product-imports/import-uuid/retry',
+      expect.objectContaining({})
+    )
+    expect(response.data.uuid).toBe('import-uuid')
   })
 
   it('surfaces the server error message when a commit is refused', async () => {
