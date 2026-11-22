@@ -102,11 +102,12 @@ export function IdentifiersStep({ data, onChange, systemSku }: Props) {
             className="h-11"
           />
           <p className="text-gray-400 text-xs dark:text-gray-500">
-            We suggest a value; use the manufacturer's part number when you have one.
+            An internal part number for this listing. The manufacturer's own number belongs in
+            Manufacturer Part Number (MPN) below.
           </p>
         </div>
 
-        {field('Model Number', 'modelNumber', 'Model X')}
+        {field('Manufacturer Part Number (MPN)', 'modelNumber', 'e.g. A000066')}
         {field('Barcode', 'barcode', 'EAN / UPC')}
 
         <div className="space-y-1.5">

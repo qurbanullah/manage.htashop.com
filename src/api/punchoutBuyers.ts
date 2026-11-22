@@ -119,6 +119,49 @@ export interface PunchoutBuyerPayload {
   is_active?: boolean
 }
 
+export interface PunchoutBuyerPartNumber {
+  uuid: string
+  buyer_part_number: string | null
+  code: string | null
+  short_description: string | null
+  long_description: string | null
+  unit_of_measure: string | null
+  manufacturer_part_number: string | null
+  gtin: string | null
+  unspsc: string | null
+  product: { id: number; uuid: string; sku: string | null; name: string } | null
+  variant: { id: number; uuid: string; sku: string | null; name: string } | null
+  is_primary: boolean
+  is_active: boolean
+  effective_from: string | null
+  effective_to: string | null
+  source: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PunchoutBuyerPartNumberPage {
+  items: PunchoutBuyerPartNumber[]
+  meta: PunchoutBuyerListMeta
+}
+
+export interface PunchoutBuyerPartNumberImportRow {
+  line: number
+  buyer_part_number: string
+  action: string
+  product_sku: string | null
+  variant_sku: string | null
+  suggested_by: string | null
+  message: string | null
+}
+
+export interface PunchoutBuyerPartNumberImportReport {
+  dry_run: boolean
+  totals: Record<string, number>
+  rows: PunchoutBuyerPartNumberImportRow[]
+  truncated: boolean
+}
+
 interface PunchoutBuyerListEnvelope {
   items: PunchoutBuyer[]
   meta: PunchoutBuyerListMeta
@@ -243,5 +286,76 @@ export const punchoutBuyersApi = {
       organizations: payload.organizations ?? [],
       contracts: payload.contracts ?? [],
     }
+  },
+
+  async partNumbers(
+    buyerUuid: string,
+    params: { q?: string; page?: number; per_page?: number; is_active?: '1' | '0' } = {}
+  ): Promise<PunchoutBuyerPartNumberPage> {
+    const searchParams: Record<string, string> = {}
+    if (params.q) searchParams.q = params.q
+    if (params.page) searchParams.page = String(params.page)
+    if (params.per_page) searchParams.per_page = String(params.per_page)
+    if (params.is_active !== undefined) searchParams.is_active = params.is_active
+
+    const res = await api.get(`manage/punchout/buyers/${buyerUuid}/part-numbers`, {
+      searchParams,
+      headers: authHeaders(),
+      throwHttpErrors: false,
+    })
+    const body = await parseApiResponse<PunchoutBuyerPartNumberPage>(res)
+    const payload = body.data as Partial<PunchoutBuyerPartNumberPage> | null
+
+    return { items: payload?.items ?? [], meta: normalizeMeta(payload?.meta) }
+  },
+
+  async addPartNumber(
+    buyerUuid: string,
+    payload: {
+      buyer_part_number: string
+      product_id: number
+      unit_of_measure?: string | null
+      short_description?: string | null
+      remap?: boolean
+    }
+  ): Promise<PunchoutBuyerPartNumber> {
+    const res = await api.post(`manage/punchout/buyers/${buyerUuid}/part-numbers`, {
+      json: payload,
+      headers: authHeaders(),
+      throwHttpErrors: false,
+    })
+    const body = await parseApiResponse<PunchoutBuyerPartNumber>(res)
+
+    return body.data as PunchoutBuyerPartNumber
+  },
+
+  async removePartNumber(buyerUuid: string, uuid: string): Promise<void> {
+    await parseApiResponse(
+      await api.delete(`manage/punchout/buyers/${buyerUuid}/part-numbers/${uuid}`, {
+        headers: authHeaders(),
+        throwHttpErrors: false,
+      })
+    )
+  },
+
+  async importPartNumbers(
+    buyerUuid: string,
+    file: File,
+    options: { dryRun?: boolean; remap?: boolean; applySuggestions?: boolean } = {}
+  ): Promise<PunchoutBuyerPartNumberImportReport> {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('dry_run', options.dryRun === false ? '0' : '1')
+    if (options.remap) form.append('remap', '1')
+    if (options.applySuggestions) form.append('apply_suggestions', '1')
+
+    const res = await api.post(`manage/punchout/buyers/${buyerUuid}/part-numbers/import`, {
+      body: form,
+      headers: authHeaders(),
+      throwHttpErrors: false,
+    })
+    const body = await parseApiResponse<PunchoutBuyerPartNumberImportReport>(res)
+
+    return body.data as PunchoutBuyerPartNumberImportReport
   },
 }

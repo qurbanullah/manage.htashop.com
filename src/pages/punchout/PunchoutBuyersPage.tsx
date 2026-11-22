@@ -3,6 +3,7 @@ import {
   Building2,
   Handshake,
   KeyRound,
+  ListChecks,
   Loader2,
   Pencil,
   Plus,
@@ -13,6 +14,7 @@ import {
 import { useState } from 'react'
 import { type PunchoutBuyer, type PunchoutProtocol, punchoutBuyersApi } from '@/api/punchoutBuyers'
 import { PunchoutBuyerModal } from '@/components/punchout/modals/PunchoutBuyerModal'
+import { PunchoutBuyerPartNumbersModal } from '@/components/punchout/modals/PunchoutBuyerPartNumbersModal'
 import { RotatePunchoutSecretModal } from '@/components/punchout/modals/RotatePunchoutSecretModal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -77,11 +79,13 @@ function BuyerRow({
   onEdit,
   onRotate,
   onDelete,
+  onPartNumbers,
 }: {
   buyer: PunchoutBuyer
   onEdit: (buyer: PunchoutBuyer) => void
   onRotate: (buyer: PunchoutBuyer) => void
   onDelete: (buyer: PunchoutBuyer) => void
+  onPartNumbers: (buyer: PunchoutBuyer) => void
 }) {
   return (
     <tr className="align-top">
@@ -121,6 +125,14 @@ function BuyerRow({
       <td className="px-4 py-3 text-gray-500 text-xs">{formatDateTime(buyer.last_seen_at)}</td>
       <td className="px-4 py-3">
         <div className="flex justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => onPartNumbers(buyer)}
+            aria-label={`Part numbers for ${buyer.name}`}
+            className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600 dark:hover:bg-gray-700"
+          >
+            <ListChecks className="h-4 w-4" />
+          </button>
           <button
             type="button"
             onClick={() => onEdit(buyer)}
@@ -249,11 +261,13 @@ function BuyersTable({
   onEdit,
   onRotate,
   onDelete,
+  onPartNumbers,
 }: {
   buyers: PunchoutBuyer[]
   onEdit: (buyer: PunchoutBuyer) => void
   onRotate: (buyer: PunchoutBuyer) => void
   onDelete: (buyer: PunchoutBuyer) => void
+  onPartNumbers: (buyer: PunchoutBuyer) => void
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
@@ -294,6 +308,7 @@ function BuyersTable({
               onEdit={onEdit}
               onRotate={onRotate}
               onDelete={onDelete}
+              onPartNumbers={onPartNumbers}
             />
           ))}
         </tbody>
@@ -314,6 +329,7 @@ export default function PunchoutBuyersPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PunchoutBuyer | null>(null)
   const [rotating, setRotating] = useState<PunchoutBuyer | null>(null)
+  const [partNumberBuyer, setPartNumberBuyer] = useState<PunchoutBuyer | null>(null)
 
   const listQuery = useQuery({
     queryKey: ['punchout-buyers', search, protocol, active, page],
@@ -387,6 +403,7 @@ export default function PunchoutBuyersPage() {
         }}
         onRotate={setRotating}
         onDelete={(buyer) => void handleDelete(buyer)}
+        onPartNumbers={setPartNumberBuyer}
       />
     )
   }
@@ -490,6 +507,13 @@ export default function PunchoutBuyersPage() {
         onClose={() => setRotating(null)}
         onRotated={invalidate}
       />
+
+      {partNumberBuyer ? (
+        <PunchoutBuyerPartNumbersModal
+          buyer={partNumberBuyer}
+          onClose={() => setPartNumberBuyer(null)}
+        />
+      ) : null}
     </div>
   )
 }
